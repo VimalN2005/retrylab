@@ -96,9 +96,10 @@ class RetryLabTransport(httpx.BaseTransport):
         )
 
         if should_fault:
-            # Apply configured latency
-            if self.scenario.delay_seconds > 0:
-                time.sleep(self.scenario.delay_seconds)
+            # Apply configured latency or dynamic latency profile
+            delay = self.scenario.get_delay()
+            if delay > 0:
+                time.sleep(delay)
 
             if self.scenario.fault == FaultType.TIMEOUT:
                 raise httpx.ReadTimeout(
@@ -165,8 +166,9 @@ class AsyncRetryLabTransport(httpx.AsyncBaseTransport):
         )
 
         if should_fault:
-            if self.scenario.delay_seconds > 0:
-                await asyncio.sleep(self.scenario.delay_seconds)
+            delay = self.scenario.get_delay()
+            if delay > 0:
+                await asyncio.sleep(delay)
 
             if self.scenario.fault == FaultType.TIMEOUT:
                 raise httpx.ReadTimeout(

@@ -10,6 +10,8 @@ from enum import Enum
 from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
+from retrylab.latency import LatencyProfile
+
 
 class FaultType(str, Enum):
     """Supported fault injection types."""
@@ -62,6 +64,7 @@ class FaultScenario(BaseModel):
     fail_count: int = Field(default=1, ge=1)
     method: str | None = None
     delay_seconds: float = Field(default=0.0, ge=0.0)
+    latency_profile: LatencyProfile | None = None
     status_code: int | None = None
     custom_headers: dict[str, str] = Field(default_factory=dict)
     custom_body: str | None = None
@@ -126,6 +129,12 @@ class FaultScenario(BaseModel):
     def recorded_requests(self) -> list[RecordedRequest]:
         """Return history of intercepted requests."""
         return list(self._recorded_requests)
+
+    def get_delay(self) -> float:
+        """Calculate delay in seconds taking into account any configured LatencyProfile."""
+        if self.latency_profile is not None:
+            return self.latency_profile.compute_delay(attempt=self._attempts + 1)
+        return self.delay_seconds
 
     def reset(self) -> None:
         """Reset scenario state for a clean test run."""

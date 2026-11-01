@@ -12,6 +12,10 @@ from retrylab.exceptions import (
     SimulatedConnectionError,
     SimulatedTimeoutError,
 )
+from retrylab.latency import (
+    LatencyDistribution,
+    LatencyProfile,
+)
 from retrylab.models import (
     FaultScenario,
     FaultType,
@@ -30,6 +34,9 @@ __all__ = [
     "FaultScenario",
     "FaultType",
     "RecordedRequest",
+    # Latency
+    "LatencyProfile",
+    "LatencyDistribution",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",

@@ -113,8 +113,9 @@ class RetryLabAdapter(BaseAdapter):
         )
 
         if should_fault:
-            if self.scenario.delay_seconds > 0:
-                time.sleep(self.scenario.delay_seconds)
+            delay = self.scenario.get_delay()
+            if delay > 0:
+                time.sleep(delay)
 
             if self.scenario.fault == FaultType.TIMEOUT:
                 raise requests.exceptions.ReadTimeout(
