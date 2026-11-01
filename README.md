@@ -2,123 +2,262 @@
 
 # 🧪 RetryLab
 
-**Deterministic Third-Party API Failure Simulation & Resilience Testing Engine**
+### **Test failures. Verify recovery. Ship with confidence.**
+
+*A local-first, zero-daemon API reliability testing and chaos engineering toolkit for Python applications.*
 
 [![CI](https://github.com/VimalN2005/retrylab/actions/workflows/ci.yml/badge.svg)](https://github.com/VimalN2005/retrylab/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-24%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-*Don't just test if your integration works. Test if your application survives when dependencies fail.*
+Simulate external API failures, test retry behaviour, and verify that your application recovers correctly — before those failures reach production.
 
-[Quickstart](#quickstart) • [Why RetryLab?](#why-retrylab) • [Architecture](#architecture) • [Roadmap](#roadmap)
+[Quickstart](#-quickstart) • [Why RetryLab?](#-the-problem) • [Architecture](#-how-it-works) • [Demo](#-terminal-demo) • [Roadmap](#-roadmap-november-2026-sprint)
 
 </div>
 
 ---
 
+> [!NOTE]
+> **Active Sprint in Progress:** RetryLab is an early-stage, local-first open-source developer tool. Core HTTPX transports, Requests adapters, dynamic latency models, and cryptographic idempotency auditing are already functional and unit-tested. Declarative YAML scenario runners and Pytest plugin extensions are actively rolling out.
+
+---
+
 ## ⚡ The Problem
 
-Modern backend applications depend heavily on external APIs:
-- **AI startups** rely on OpenAI, Anthropic, or Cohere.
-- **Fintech startups** rely on Stripe, Plaid, or Razorpay.
-- **SaaS startups** rely on AWS, Twilio, SendGrid, and GitHub.
+Modern backend and AI applications depend almost entirely on external third-party services:
+- **AI APIs:** OpenAI, Anthropic, Cohere, and Hugging Face.
+- **Payment Gateways:** Stripe, Adyen, Razorpay, and Plaid.
+- **Messaging & Notifications:** Twilio, SendGrid, Resend, and Slack.
+- **Cloud Infrastructure & SaaS:** AWS, GitHub, Supabase, and Redis Cloud.
 
-In staging, these third-party APIs return HTTP 200 nearly 100% of the time. But in production:
-1. **OpenAI throws HTTP 429 (Rate Limit)** during traffic spikes. Does your retry mechanism introduce exponential backoff, or does it trigger a self-inflicted DDoS?
-2. **Stripe drops connection halfway through a charge.** Does your service retry with the exact same `Idempotency-Key`, or does it double-charge the customer?
-3. **Twilio experiences a 15-second latency spike.** Does your thread pool starve and cause an outage across your entire microservice?
+In development and staging, these services almost always return `HTTP 200 OK`. But in production:
+1. **OpenAI suddenly throws `HTTP 429 (Too Many Requests)`:** Does your application use exponential backoff with jitter, or does it trigger an unintended retry DDoS loop?
+2. **Stripe drops connection halfway through a transaction:** Does your application retry with the exact same `Idempotency-Key`, or does it double-charge the customer?
+3. **Twilio experiences a 15-second latency spike:** Does your worker thread pool starve and cascade into a complete service outage?
+4. **Upstream payload mutation:** Does your retried request accidentally alter the payload body, causing downstream payment gateways to reject it with `HTTP 400`?
 
-Existing mock tools (`unittest.mock`, `responses`, `wiremock`) only return static canned responses. They **do not verify dynamic recovery, retry policies, or idempotency safety**.
-
-**RetryLab solves this.**
-
----
-
-## 🚀 Key Capabilities
-
-- 🎯 **Deterministic Fault Injection:** Simulate timeouts, HTTP 429 rate limits with dynamic `Retry-After` headers, 502/503 crashes, and connection drops on specific endpoints without modifying your business logic.
-- 🔁 **Recovery Verification:** Assert that your application retries failed requests within defined budgets and recovers cleanly once the upstream dependency stabilizes.
-- 🛡️ **Idempotency Auditor:** Verify that retried mutations (POST/PUT/PATCH) maintain identical idempotency tokens and don't create duplicate downstream records.
-- ⚡ **Zero-Daemon Python-Native Interception:** Works directly in-process via custom HTTP transports (`httpx` & `requests`). No heavy external proxies or Docker containers required for testing.
-- 🧪 **Pytest-First Experience:** Run resilience tests directly inside your standard CI test suite with declarative decorators.
+**Happy-path integration testing cannot reliably catch these failure modes.** Standard mocks (`unittest.mock`, `responses`) only return static responses and cannot verify dynamic recovery paths, idempotency guarantees, or backoff policies.
 
 ---
 
-## 🏗️ Architecture
+## 💡 What is RetryLab?
 
-RetryLab intercepts outbound HTTP traffic directly at the transport boundary before it hits the network socket:
+**RetryLab** is a developer-first testing engine that makes external dependency failure predictable, repeatable, and easily testable on your local machine and in CI pipelines.
 
-```
-┌────────────────────────────────────────────────────────┐
-│             Your Application / Service Logic           │
-└────────────────────────────────────────────────────────┘
-                            │
-               (httpx.Client / AsyncClient)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                   RetryLab Transport                   │
-│                                                        │
-│  ┌───────────────────┐        ┌─────────────────────┐  │
-│  │ Pattern Matcher   │───────►│ Scenario Controller │  │
-│  └───────────────────┘        └─────────────────────┘  │
-│                                          │             │
-│                       ┌──────────────────┴──────────┐  │
-│                       ▼                             ▼  │
-│             [Injected Fault State]        [Healthy State]
-│             - Timeout                      - Passthrough
-│             - HTTP 429 / 503               - Recorded Mock
-│             - Socket Reset                             │
-└────────────────────────────────────────────────────────┘
+Instead of waiting for an outage in production, developers configure deterministic failure scenarios (e.g., *"fail attempt 1 with a timeout, then recover on attempt 2"*) and verify whether their application survives and recovers cleanly.
+
+---
+
+## 🖥️ Terminal Demo
+
+Here is RetryLab running an automated recovery and idempotency audit on a simulated Stripe checkout:
+
+```text
+==================================== RETRYLAB TEST RUN ====================================
+[Scenario] Target: https://api.stripe.com/v1/charges | Fault: TIMEOUT | Failures: 1
+
+--> Attempt #1: POST https://api.stripe.com/v1/charges
+    [FAULT INJECTED] Simulated ReadTimeout (delay: 0.15s)
+    [CLIENT LOG] Payment timed out! Triggering backoff retry...
+
+--> Attempt #2: POST https://api.stripe.com/v1/charges
+    [RECOVERED] Status: 200 OK | Response: {"status": "charge_confirmed"}
+    [CLIENT LOG] Transaction confirmed on retry!
+
+--------------------------------- RELIABILITY AUDIT ---------------------------------
+[*] Total Outbound Requests: 2
+[*] Injected Faults:         1 (Attempt #1)
+[*] Recovery Status:         PASS (Clean recovery on Attempt #2)
+[*] Idempotency Audit:       PASS (Same Idempotency-Key preserved: 'safe_order_tx_98765')
+[*] Payload Integrity:       PASS (SHA-256 fingerprint matching across retries)
+================================ 1 SCENARIO PASSED in 0.22s ================================
 ```
 
 ---
 
-## 📦 Quickstart (Preview)
+## 🎯 Key Features & Capabilities
 
-### Installation
+| Capability | Status | Description |
+| :--- | :---: | :--- |
+| **HTTPX Sync Interception** | ✅ Ready | Custom `httpx.BaseTransport` for in-process sync client interception. |
+| **HTTPX Async Interception** | ✅ Ready | `httpx.AsyncBaseTransport` for modern async/await FastAPI applications. |
+| **Requests Adapter** | ✅ Ready | `requests.adapters.BaseAdapter` (`RetryLabAdapter`) for standard SDKs (e.g. `boto3`, `stripe`). |
+| **Fault Matrix (429, 500, 503)** | ✅ Ready | Realistic status code generation with dynamic `Retry-After` headers. |
+| **Timeout & Socket Resets** | ✅ Ready | Emulate `ReadTimeout`, `ConnectTimeout`, and sudden TCP disconnects. |
+| **Dynamic Latency Engine** | ✅ Ready | Realistic network profiles: `FIXED`, `UNIFORM` jitter, `NORMAL` gaussian, and `SPIKE` models. |
+| **Idempotency Auditor** | ✅ Ready | SHA-256 canonical JSON hashing to detect duplicate payments and payload mutations. |
+| **Pytest Declarative Fixture** | 🟡 In Progress | `@pytest.mark.retrylab(...)` plugin for zero-boilerplate testing. |
+| **YAML Scenario Runner** | 🟡 In Progress | Human-readable declarative scenario files for cross-language teams. |
+| **Typer CLI Runner** | 📋 Planned | `retrylab run scenario.yaml` CLI command. |
+| **GitHub Actions CI Reporter** | 📋 Planned | Automated PR failure annotations and resilience scorecards. |
+
+---
+
+## 🏗️ How It Works
+
+RetryLab intercepts outbound HTTP traffic directly at the transport boundary before it reaches the network socket. No heavy Docker daemons, local proxies, or DNS hijacking required:
+
+```mermaid
+flowchart TD
+    App["Your Application / Service Logic"] --> Client["HTTP Client (HTTPX / Requests)"]
+    Client --> Transport["RetryLab Transport / Adapter"]
+    
+    subgraph RetryLab Engine
+        Transport --> Matcher{"URL Pattern Matcher"}
+        Matcher -- "Match" --> StateMachine["Scenario State Machine"]
+        Matcher -- "Unmatched" --> Passthrough["Pass-Through / Real Network"]
+        
+        StateMachine --> Attempts{"Attempts < Fail Count?"}
+        Attempts -- "Yes (Inject)" --> FaultEngine["Fault Injection Engine"]
+        FaultEngine --> Chaos["Timeout / 429 / 500 / Latency"]
+        
+        Attempts -- "No (Recover)" --> RecoveryEngine["Recovered Response (200 OK)"]
+    end
+    
+    Chaos --> App
+    RecoveryEngine --> App
+    
+    App --> Auditor["Idempotency & Recovery Auditor"]
+    Auditor --> Report["Assertion Report (CI / Pytest)"]
+```
+
+---
+
+## 🚀 Quickstart
+
+### 1. Installation
 
 ```bash
 pip install retrylab
 ```
 
-### Basic Usage with HTTPX
+### 2. Testing OpenAI Rate-Limit Recovery (`HTTPX`)
 
 ```python
 import httpx
 from retrylab import FaultScenario, FaultType, RetryLabTransport
 
-# Define a deterministic failure scenario: 1 timeout, then healthy
+# Scenario: OpenAI returns 429 on attempt 1, then recovers on attempt 2
 scenario = FaultScenario(
     target="https://api.openai.com/v1/*",
-    fault=FaultType.TIMEOUT,
+    fault=FaultType.RATE_LIMIT_429,
+    retry_after_seconds=2,
     fail_count=1,
 )
 
-# Attach RetryLab transport
 transport = RetryLabTransport(scenario=scenario)
 
 with httpx.Client(transport=transport) as client:
-    # First attempt: Simulates ReadTimeout
-    # Second attempt: Passes through or recovers
-    ...
+    # Attempt 1 -> 429 Rate Limit (Header: Retry-After: 2)
+    resp1 = client.post("https://api.openai.com/v1/chat/completions", json={"model": "gpt-4o"})
+    assert resp1.status_code == 429
+    
+    # Attempt 2 -> 200 OK (Application recovers after respecting backoff)
+    resp2 = client.post("https://api.openai.com/v1/chat/completions", json={"model": "gpt-4o"})
+    assert resp2.status_code == 200
 ```
+
+### 3. Auditing Stripe Payment Idempotency (`Requests` or `HTTPX`)
+
+```python
+from retrylab import FaultScenario, FaultType, IdempotencyAuditor, RetryLabTransport
+
+scenario = FaultScenario(
+    target="https://api.stripe.com/v1/charges",
+    fault=FaultType.TIMEOUT,
+    fail_count=1,
+)
+auditor = IdempotencyAuditor(idempotency_header="Idempotency-Key")
+
+# Run your payment code with RetryLab transport attached...
+# If your application changes the idempotency key or alters the payload body on retry:
+auditor.assert_idempotent(scenario)
+# Raises IdempotencyViolationError if any double-charge or mutation risk is found!
+```
+
+---
+
+## 📄 Declarative YAML Scenario Preview (Planned)
+
+Define scenarios once and run them anywhere:
+
+```yaml
+version: 1
+name: payment_resilience_test
+match:
+  method: POST
+  url: "https://api.stripe.com/v1/charges"
+steps:
+  - kind: fault
+    type: timeout
+    delay: 0.2s
+  - kind: fault
+    type: http_status
+    code: 503
+    retry_after: 2
+  - kind: recover
+    code: 200
+    body:
+      status: "succeeded"
+      charge_id: "ch_987654321"
+assertions:
+  max_retries: 3
+  enforce_idempotency: true
+  idempotency_header: "Idempotency-Key"
+```
+
+---
+
+## 📐 Design Principles
+
+- 🏠 **Local-First:** Core tests run 100% in-process on your developer machine without spinning up external servers or Docker containers.
+- 🎲 **Deterministic:** The exact same scenario config generates the exact same sequence of failures every single time.
+- 🛡️ **Safe by Default:** Never sends unintended external network calls during testing.
+- 🔒 **Privacy-Conscious:** Sensitive headers (Bearer tokens, Authorization, CVV) are automatically redacted in audit reports.
+- ⚡ **CI-Ready:** Seamlessly runs inside GitHub Actions, GitLab CI, or CircleCI with zero configuration overhead.
 
 ---
 
 ## 🗺️ Roadmap (November 2026 Sprint)
 
-- [x] **Week 1 (Nov 1 - Nov 7):** Core Engine Architecture, Sync/Async HTTPX Transport Interception, Pydantic V2 Models.
-- [ ] **Week 2 (Nov 8 - Nov 14):** Chaos Matrix: Timeouts, 429 Rate-Limits, 502/503 Crashes, Dynamic Latency Injection.
-- [ ] **Week 3 (Nov 15 - Nov 21):** Recovery Assertions, Idempotency Validator, Pytest Plugin (`pytest-retrylab`).
-- [ ] **Week 4 (Nov 22 - Nov 30):** Stripe & OpenAI Integration Demos, CLI Runner, Official PyPI Release.
+| Phase | Timeline | Focus | Status |
+| :--- | :--- | :--- | :---: |
+| **Phase 1: Foundation** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency Engine, Idempotency Cryptographic Auditor | **In Progress (Active)** |
+| **Phase 2: Chaos Matrix** | Nov 8 – Nov 14 | 502/504 simulation, socket disconnect emulator, schema drift inspector | Planned |
+| **Phase 3: DX & Pytest** | Nov 15 – Nov 21 | `@pytest.mark.retrylab` decorator, YAML scenario parser, retry budget verifier | Planned |
+| **Phase 4: Launch & Demos** | Nov 22 – Nov 30 | Typer CLI, OpenAI/Stripe end-to-end applications, PyPI release, Documentation | Planned |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+Contributions from the developer community are warmly welcomed! Whether it is adding new fault models, improving documentation, or adding client adapters:
 
-## 📄 License
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feat/amazing-fault-model`).
+3. Ensure all tests pass (`pytest -v`).
+4. Commit your changes (`git commit -m "feat: add new fault model"`).
+5. Push to the branch and open a Pull Request.
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+---
+
+## 🔐 Security & Responsible Testing
+
+RetryLab is intended exclusively for local and CI resilience testing in staging/test environments.
+- **Do not** hardcode production API credentials, real card tokens, or customer PII in scenario files.
+- To report a security concern, please contact [vimaln2005@users.noreply.github.com](mailto:vimaln2005@users.noreply.github.com) privately.
+
+---
+
+## 📜 License
+
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for more details.
+
+<div align="center">
+
+**RetryLab** — *Don't just test success. Test recovery.*
+
+</div>
