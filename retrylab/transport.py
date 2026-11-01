@@ -150,7 +150,10 @@ class AsyncRetryLabTransport(httpx.AsyncBaseTransport):
         url_str = str(request.url)
         method_str = request.method
         headers_dict = dict(request.headers)
-        body_bytes = await request.aread()
+        try:
+            body_bytes = request.read()
+        except Exception:
+            body_bytes = b""
 
         should_fault = self.scenario.should_inject_fault(url_str, method_str)
         self.scenario.record_attempt(

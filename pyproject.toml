@@ -57,9 +57,8 @@ packages = ["retrylab"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --strict-markers"
+addopts = "-ra -q --strict-markers -p no:rerunfailures"
 testpaths = ["tests"]
-asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
