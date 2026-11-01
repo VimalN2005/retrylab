@@ -12,6 +12,11 @@ from retrylab.exceptions import (
     SimulatedConnectionError,
     SimulatedTimeoutError,
 )
+from retrylab.idempotency import (
+    IdempotencyAuditor,
+    IdempotencyViolation,
+    IdempotencyViolationType,
+)
 from retrylab.latency import (
     LatencyDistribution,
     LatencyProfile,
@@ -37,6 +42,10 @@ __all__ = [
     # Latency
     "LatencyProfile",
     "LatencyDistribution",
+    # Idempotency
+    "IdempotencyAuditor",
+    "IdempotencyViolation",
+    "IdempotencyViolationType",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
