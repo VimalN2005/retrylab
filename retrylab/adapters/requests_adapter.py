@@ -145,14 +145,20 @@ class RetryLabAdapter(BaseAdapter):
         if self.fallback_response is not None:
             return self.fallback_response
 
-        # Default recovered 200 response
+        # Recovered 200 response
         recovered_resp = requests.Response()
-        recovered_resp.status_code = 200
-        recovered_resp.headers = CaseInsensitiveDict({
+        recovered_resp.status_code = self.scenario.status_code or 200
+        headers_dict = {
             "Content-Type": "application/json",
             "X-RetryLab-Status": "recovered",
-        })
-        recovered_content = json.dumps({"status": "recovered", "url": url_str}).encode("utf-8")
+            **self.scenario.custom_headers,
+        }
+        recovered_resp.headers = CaseInsensitiveDict(headers_dict)
+        if self.scenario.custom_body is not None:
+            recovered_content = self.scenario.custom_body.encode("utf-8")
+        else:
+            recovered_content = json.dumps({"status": "recovered", "url": url_str}).encode("utf-8")
+
         recovered_resp._content = recovered_content
         recovered_resp.raw = io.BytesIO(recovered_content)
         recovered_resp.url = url_str

@@ -122,11 +122,22 @@ class RetryLabTransport(httpx.BaseTransport):
         if self.fallback_response is not None:
             return self.fallback_response
 
-        # Default recovered response for offline testing
+        # Recovered response for offline testing
+        status_code = self.scenario.status_code or 200
+        headers = {
+            "Content-Type": "application/json",
+            "X-RetryLab-Status": "recovered",
+            **self.scenario.custom_headers,
+        }
+        if self.scenario.custom_body is not None:
+            content = self.scenario.custom_body.encode("utf-8")
+        else:
+            content = json.dumps({"status": "recovered", "url": url_str}).encode("utf-8")
+
         return httpx.Response(
-            status_code=200,
-            headers={"Content-Type": "application/json", "X-RetryLab-Status": "recovered"},
-            content=json.dumps({"status": "recovered", "url": url_str}).encode("utf-8"),
+            status_code=status_code,
+            headers=headers,
+            content=content,
             request=request,
         )
 
@@ -190,9 +201,20 @@ class AsyncRetryLabTransport(httpx.AsyncBaseTransport):
         if self.fallback_response is not None:
             return self.fallback_response
 
+        status_code = self.scenario.status_code or 200
+        headers = {
+            "Content-Type": "application/json",
+            "X-RetryLab-Status": "recovered",
+            **self.scenario.custom_headers,
+        }
+        if self.scenario.custom_body is not None:
+            content = self.scenario.custom_body.encode("utf-8")
+        else:
+            content = json.dumps({"status": "recovered", "url": url_str}).encode("utf-8")
+
         return httpx.Response(
-            status_code=200,
-            headers={"Content-Type": "application/json", "X-RetryLab-Status": "recovered"},
-            content=json.dumps({"status": "recovered", "url": url_str}).encode("utf-8"),
+            status_code=status_code,
+            headers=headers,
+            content=content,
             request=request,
         )

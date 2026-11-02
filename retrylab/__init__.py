@@ -26,6 +26,11 @@ from retrylab.models import (
     FaultType,
     RecordedRequest,
 )
+from retrylab.scenarios import (
+    ScenarioStep,
+    SequentialScenario,
+    StepKind,
+)
 from retrylab.transport import (
     AsyncRetryLabTransport,
     RetryLabTransport,
@@ -35,10 +40,13 @@ __version__ = "0.1.0-alpha.1"
 
 __all__ = [
     "__version__",
-    # Models
+    # Models & Scenarios
     "FaultScenario",
     "FaultType",
     "RecordedRequest",
+    "SequentialScenario",
+    "ScenarioStep",
+    "StepKind",
     # Latency
     "LatencyProfile",
     "LatencyDistribution",
