@@ -38,6 +38,15 @@ from retrylab.models import (
     FaultType,
     RecordedRequest,
 )
+from retrylab.proxy import (
+    RetryLabProxyHandler,
+    create_proxy_server,
+    start_background_proxy,
+)
+from retrylab.reporting import (
+    ReliabilityReport,
+    generate_reliability_report,
+)
 from retrylab.scenarios import (
     ScenarioStep,
     SequentialScenario,
@@ -82,6 +91,9 @@ __all__ = [
     "SchemaDriftError",
     "DriftType",
     "DriftViolation",
+    # Reporting
+    "ReliabilityReport",
+    "generate_reliability_report",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
