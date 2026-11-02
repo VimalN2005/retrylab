@@ -30,6 +30,8 @@ from retrylab.scenarios import (
     ScenarioStep,
     SequentialScenario,
     StepKind,
+    load_scenario_from_yaml,
+    load_scenarios_from_dir,
 )
 from retrylab.transport import (
     AsyncRetryLabTransport,
@@ -47,6 +49,8 @@ __all__ = [
     "SequentialScenario",
     "ScenarioStep",
     "StepKind",
+    "load_scenario_from_yaml",
+    "load_scenarios_from_dir",
     # Latency
     "LatencyProfile",
     "LatencyDistribution",

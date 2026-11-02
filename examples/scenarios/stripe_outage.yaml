@@ -1,0 +1,19 @@
+version: 1
+name: stripe_payment_resilience
+target: "https://api.stripe.com/v1/charges"
+method: POST
+repeat_last: true
+steps:
+  - kind: fault
+    type: timeout
+    delay: 0.05s
+    repeat: 1
+  - kind: fault
+    type: service_unavailable_503
+    retry_after: 3
+    repeat: 1
+  - kind: recover
+    code: 200
+    body:
+      status: "succeeded"
+      id: "ch_test_987654321"

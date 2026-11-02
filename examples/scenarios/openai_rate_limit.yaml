@@ -1,0 +1,12 @@
+version: 1
+name: openai_rate_limit_demo
+match:
+  url: "https://api.openai.com/v1/*"
+  method: POST
+fault: rate_limit_429
+fail_count: 2
+retry_after: 4
+body:
+  error:
+    message: "Rate limit reached. Please wait before retrying."
+    type: "requests"
