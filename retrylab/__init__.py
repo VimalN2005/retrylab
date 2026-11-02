@@ -3,6 +3,7 @@ RetryLab: Deterministic Third-Party API Failure Simulation & Resilience Testing 
 """
 
 from retrylab.adapters.requests_adapter import RetryLabAdapter
+from retrylab.context import simulate_fault
 from retrylab.exceptions import (
     FaultInjectionError,
     IdempotencyViolationError,
@@ -62,6 +63,7 @@ __all__ = [
     "RetryLabTransport",
     "AsyncRetryLabTransport",
     "RetryLabAdapter",
+    "simulate_fault",
     # Exceptions
     "RetryLabError",
     "ScenarioValidationError",

@@ -54,6 +54,9 @@ Homepage = "https://github.com/VimalN2005/retrylab"
 Repository = "https://github.com/VimalN2005/retrylab"
 Issues = "https://github.com/VimalN2005/retrylab/issues"
 
+[project.entry-points.pytest11]
+retrylab = "retrylab.pytest_plugin"
+
 [tool.hatch.build.targets.wheel]
 packages = ["retrylab"]
 
