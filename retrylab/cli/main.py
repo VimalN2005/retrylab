@@ -13,6 +13,7 @@ from retrylab import __version__
 from retrylab.drift import SchemaDriftDetector
 from retrylab.exceptions import ScenarioValidationError
 from retrylab.models import FaultScenario
+from retrylab.proxy import create_proxy_server
 from retrylab.scenarios import SequentialScenario, load_scenario_from_yaml, load_scenarios_from_dir
 
 app = typer.Typer(
@@ -109,6 +110,34 @@ def drift(
         for v in violations:
             typer.echo(f"  - [{v.drift_type.value}] {v.message}")
         raise typer.Exit(code=1)
+
+
+@app.command()
+def serve(
+    scenario_path: Path = typer.Argument(..., help="Path to scenario YAML file"),
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host address to bind to"),
+    port: int = typer.Option(8080, "--port", "-p", help="Port to listen on"),
+) -> None:
+    """Start local HTTP forward/mock proxy daemon for cross-language testing."""
+    try:
+        scenario = load_scenario_from_yaml(scenario_path)
+    except ScenarioValidationError as err:
+        typer.secho(f"[FAIL] Could not load scenario: {err}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    typer.secho(f"🚀 Starting RetryLab Proxy on http://{host}:{port}", fg=typer.colors.GREEN, bold=True)
+    typer.echo(f"  Target:   {scenario.target}")
+    typer.echo(f"  Scenario: {scenario.name}")
+    typer.echo("  Health:   http://localhost:{port}/_retrylab/health")
+    typer.echo("  Report:   http://localhost:{port}/_retrylab/report")
+    typer.echo("\nPress Ctrl+C to terminate.")
+
+    server = create_proxy_server(scenario, host=host, port=port)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        typer.echo("\nShutting down RetryLab proxy.")
+        server.shutdown()
 
 
 if __name__ == "__main__":
