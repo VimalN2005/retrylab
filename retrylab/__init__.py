@@ -4,6 +4,12 @@ RetryLab: Deterministic Third-Party API Failure Simulation & Resilience Testing 
 
 from retrylab.adapters.requests_adapter import RetryLabAdapter
 from retrylab.context import simulate_fault
+from retrylab.drift import (
+    DriftType,
+    DriftViolation,
+    SchemaDriftDetector,
+    SchemaDriftError,
+)
 from retrylab.exceptions import (
     FaultInjectionError,
     IdempotencyViolationError,
@@ -62,6 +68,11 @@ __all__ = [
     "IdempotencyViolationType",
     # Security & Redaction
     "DataRedactor",
+    # Schema Drift
+    "SchemaDriftDetector",
+    "SchemaDriftError",
+    "DriftType",
+    "DriftViolation",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
