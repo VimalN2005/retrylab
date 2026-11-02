@@ -34,6 +34,7 @@ from retrylab.scenarios import (
     load_scenario_from_yaml,
     load_scenarios_from_dir,
 )
+from retrylab.security import DataRedactor
 from retrylab.transport import (
     AsyncRetryLabTransport,
     RetryLabTransport,
@@ -59,6 +60,8 @@ __all__ = [
     "IdempotencyAuditor",
     "IdempotencyViolation",
     "IdempotencyViolationType",
+    # Security & Redaction
+    "DataRedactor",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",

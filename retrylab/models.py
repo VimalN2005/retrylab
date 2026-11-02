@@ -37,6 +37,20 @@ class RecordedRequest(BaseModel):
     was_fault_injected: bool = False
     injected_fault: FaultType | None = None
 
+    def to_safe_dict(self) -> dict[str, Any]:
+        """Returns a sanitized dict representation with sensitive tokens redacted."""
+        from retrylab.security.redactor import DataRedactor
+        redactor = DataRedactor()
+        return redactor.redact_record({
+            "url": self.url,
+            "method": self.method,
+            "headers": self.headers,
+            "body": self.body,
+            "timestamp": self.timestamp,
+            "was_fault_injected": self.was_fault_injected,
+            "injected_fault": self.injected_fault.value if self.injected_fault else None,
+        })
+
 
 class FaultScenario(BaseModel):
     """
