@@ -14,6 +14,7 @@ from retrylab.drift import SchemaDriftDetector
 from retrylab.exceptions import ScenarioValidationError
 from retrylab.models import FaultScenario
 from retrylab.proxy import create_proxy_server
+from retrylab.reporting import generate_reliability_report
 from retrylab.scenarios import SequentialScenario, load_scenario_from_yaml, load_scenarios_from_dir
 
 app = typer.Typer(
@@ -110,6 +111,49 @@ def drift(
         for v in violations:
             typer.echo(f"  - [{v.drift_type.value}] {v.message}")
         raise typer.Exit(code=1)
+
+
+@app.command()
+def gate(
+    scenario_path: Path = typer.Argument(..., help="Path to scenario YAML file"),
+    report: Optional[Path] = typer.Option(None, "--report", "-r", help="Path to save report (.md, .html, .json)"),
+    fail_on_error: bool = typer.Option(False, "--fail-on-error", help="Exit code 1 if audit fails"),
+) -> None:
+    """Execute CI reliability gate and generate Markdown/HTML summary."""
+    try:
+        scenario = load_scenario_from_yaml(scenario_path)
+    except ScenarioValidationError as err:
+        typer.secho(f"[FAIL] Could not load scenario: {err}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    # Dry-run execution through all steps to generate full audit
+    import httpx
+    from retrylab.transport import RetryLabTransport
+
+    transport = RetryLabTransport(scenario=scenario)
+    target_clean = scenario.target.replace("*", "test_endpoint")
+    method = scenario.method or "POST"
+
+    step_count = len(scenario.steps) if isinstance(scenario, SequentialScenario) else scenario.fail_count + 1
+    with httpx.Client(transport=transport) as client:
+        for _ in range(step_count):
+            try:
+                client.request(method, target_clean, json={"ci_test": True}, headers={"Idempotency-Key": "ci_key_1"})
+            except httpx.HTTPError:
+                pass
+
+    rel_report = generate_reliability_report(scenario, idempotency_header="Idempotency-Key")
+
+    if report is not None:
+        rel_report.save(report)
+        typer.secho(f"📄 Saved reliability report to '{report}'", fg=typer.colors.BLUE)
+
+    if rel_report.status == "PASS":
+        typer.secho(f"[PASS] Reliability Gate Passed: {scenario.name}", fg=typer.colors.GREEN, bold=True)
+    else:
+        typer.secho(f"[FAIL] Reliability Gate Failed: {scenario.name}", fg=typer.colors.RED, bold=True)
+        if fail_on_error:
+            raise typer.Exit(code=1)
 
 
 @app.command()

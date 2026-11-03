@@ -1,0 +1,27 @@
+name: "RetryLab Resilience & Reliability Gate"
+description: "Simulates third-party API failures and audits retry policies, idempotency, and schema drift in CI."
+author: "Vimal N"
+
+inputs:
+  scenario:
+    description: "Path to a RetryLab YAML scenario file or scenarios directory."
+    required: true
+  report:
+    description: "File path to save the generated Markdown or HTML reliability report."
+    required: false
+    default: "retrylab-report.md"
+  fail-on-violation:
+    description: "Whether to fail the CI step if any idempotency, backoff, or recovery violation is detected."
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run RetryLab Reliability Gate
+      shell: bash
+      run: |
+        retrylab gate "${{ inputs.scenario }}" --report "${{ inputs.report }}" $( [ "${{ inputs.fail-on-violation }}" = "true" ] && echo "--fail-on-error" )
+        if [ -f "${{ inputs.report }}" ] && [ -n "$GITHUB_STEP_SUMMARY" ]; then
+          cat "${{ inputs.report }}" >> "$GITHUB_STEP_SUMMARY"
+        fi
