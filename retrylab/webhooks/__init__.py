@@ -8,10 +8,20 @@ from retrylab.webhooks.emitter import (
     WebhookSignatureScheme,
     compute_webhook_signature,
 )
+from retrylab.webhooks.chaos import (
+    ChaosWebhookConfig,
+    ChaosWebhookDispatcher,
+    DispatchedWebhookResult,
+    WebhookChaosMode,
+)
 
 __all__ = [
     "WebhookEmitter",
     "WebhookEvent",
     "WebhookSignatureScheme",
     "compute_webhook_signature",
+    "ChaosWebhookConfig",
+    "ChaosWebhookDispatcher",
+    "DispatchedWebhookResult",
+    "WebhookChaosMode",
 ]

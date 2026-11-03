@@ -66,6 +66,10 @@ from retrylab.scenarios import (
 )
 from retrylab.security import DataRedactor
 from retrylab.webhooks import (
+    ChaosWebhookConfig,
+    ChaosWebhookDispatcher,
+    DispatchedWebhookResult,
+    WebhookChaosMode,
     WebhookEmitter,
     WebhookEvent,
     WebhookSignatureScheme,
@@ -121,6 +125,10 @@ __all__ = [
     "WebhookEmitter",
     "WebhookEvent",
     "WebhookSignatureScheme",
+    "ChaosWebhookDispatcher",
+    "WebhookChaosMode",
+    "ChaosWebhookConfig",
+    "DispatchedWebhookResult",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
