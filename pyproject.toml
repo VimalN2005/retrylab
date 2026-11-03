@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "retrylab"
@@ -27,7 +27,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Testing",
     "Topic :: Software Development :: Quality Assurance",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -61,13 +60,14 @@ retrylab = "retrylab.cli.main:app"
 [project.entry-points.pytest11]
 retrylab = "retrylab.pytest_plugin"
 
-[tool.hatch.build.targets.wheel]
-packages = ["retrylab"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["retrylab*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-ra -q --strict-markers -p no:rerunfailures"
-testpaths = ["tests"]
+testpaths = ["tests", "examples"]
 
 [tool.ruff]
 line-length = 100
