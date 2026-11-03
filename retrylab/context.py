@@ -45,7 +45,13 @@ def simulate_fault(
     if isinstance(target, (FaultScenario, SequentialScenario)):
         scenario = target
     else:
-        ft = FaultType(str(fault).lower()) if isinstance(fault, str) else fault
+        if isinstance(fault, FaultType):
+            ft = fault
+        elif isinstance(fault, str):
+            ft = FaultType(fault.lower())
+        else:
+            ft = fault
+
         scenario = FaultScenario(
             target=target,
             fault=ft,
