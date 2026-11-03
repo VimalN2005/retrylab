@@ -43,6 +43,11 @@ from retrylab.proxy import (
     create_proxy_server,
     start_background_proxy,
 )
+from retrylab.recorder import (
+    RecordedInteraction,
+    ReplayTransport,
+    TrafficRecorder,
+)
 from retrylab.reporting import (
     ReliabilityReport,
     generate_reliability_report,
@@ -94,6 +99,10 @@ __all__ = [
     # Reporting
     "ReliabilityReport",
     "generate_reliability_report",
+    # Recorder & Replay
+    "RecordedInteraction",
+    "TrafficRecorder",
+    "ReplayTransport",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
