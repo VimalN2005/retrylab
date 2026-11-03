@@ -14,6 +14,11 @@ from retrylab.webhooks.chaos import (
     DispatchedWebhookResult,
     WebhookChaosMode,
 )
+from retrylab.webhooks.auditor import (
+    WebhookAuditReport,
+    WebhookCheckResult,
+    WebhookReceiverAuditor,
+)
 
 __all__ = [
     "WebhookEmitter",
@@ -24,4 +29,7 @@ __all__ = [
     "ChaosWebhookDispatcher",
     "DispatchedWebhookResult",
     "WebhookChaosMode",
+    "WebhookReceiverAuditor",
+    "WebhookCheckResult",
+    "WebhookAuditReport",
 ]

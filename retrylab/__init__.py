@@ -69,9 +69,12 @@ from retrylab.webhooks import (
     ChaosWebhookConfig,
     ChaosWebhookDispatcher,
     DispatchedWebhookResult,
+    WebhookAuditReport,
+    WebhookCheckResult,
     WebhookChaosMode,
     WebhookEmitter,
     WebhookEvent,
+    WebhookReceiverAuditor,
     WebhookSignatureScheme,
 )
 from retrylab.transport import (
@@ -129,6 +132,9 @@ __all__ = [
     "WebhookChaosMode",
     "ChaosWebhookConfig",
     "DispatchedWebhookResult",
+    "WebhookReceiverAuditor",
+    "WebhookCheckResult",
+    "WebhookAuditReport",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",

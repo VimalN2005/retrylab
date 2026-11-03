@@ -5,6 +5,7 @@ RetryLab CLI commands.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Optional
 import typer
@@ -16,6 +17,16 @@ from retrylab.models import FaultScenario
 from retrylab.proxy import create_proxy_server
 from retrylab.reporting import generate_reliability_report
 from retrylab.scenarios import SequentialScenario, load_scenario_from_yaml, load_scenarios_from_dir
+from retrylab.webhooks import (
+    ChaosWebhookConfig,
+    ChaosWebhookDispatcher,
+    WebhookAuditReport,
+    WebhookChaosMode,
+    WebhookEmitter,
+    WebhookEvent,
+    WebhookReceiverAuditor,
+    WebhookSignatureScheme,
+)
 
 app = typer.Typer(
     name="retrylab",
@@ -182,6 +193,103 @@ def serve(
     except KeyboardInterrupt:
         typer.echo("\nShutting down RetryLab proxy.")
         server.shutdown()
+
+
+webhook_app = typer.Typer(
+    name="webhook",
+    help="Webhook resilience, cryptographic signature, and chaos testing commands.",
+    no_args_is_help=True,
+)
+app.add_typer(webhook_app, name="webhook")
+
+
+@webhook_app.command(name="audit")
+def webhook_audit(
+    url: str = typer.Argument(..., help="Target webhook endpoint URL to audit"),
+    secret: str = typer.Option(..., "--secret", "-s", help="Webhook signing secret"),
+    scheme: str = typer.Option("stripe_v1", "--scheme", help="Signature scheme: stripe_v1, github_sha256, hmac_sha256"),
+    check_clock_skew: bool = typer.Option(True, "--clock-skew/--no-clock-skew", help="Verify clock skew rejection"),
+    format: str = typer.Option("text", "--format", "-f", help="Output format: text, json"),
+) -> None:
+    """Run automated resilience & security audit battery on an inbound webhook receiver."""
+    try:
+        sig_scheme = WebhookSignatureScheme(scheme)
+    except ValueError:
+        typer.secho(f"[FAIL] Invalid signature scheme '{scheme}'. Choose from: stripe_v1, github_sha256, hmac_sha256", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    typer.secho(f"🔍 Running Webhook Resilience Audit against {url} [{sig_scheme.value}]...", fg=typer.colors.CYAN)
+
+    auditor = WebhookReceiverAuditor(
+        target_url=url,
+        secret=secret,
+        scheme=sig_scheme,
+    )
+
+    report = auditor.run_audit(check_clock_skew=check_clock_skew)
+
+    if format == "json":
+        typer.echo(report.model_dump_json(indent=2))
+    else:
+        for chk in report.checks:
+            badge = "[PASS]" if chk.passed else "[FAIL]"
+            color = typer.colors.GREEN if chk.passed else typer.colors.RED
+            typer.secho(f"{badge} {chk.check_name}: {chk.details}", fg=color)
+
+        typer.echo("")
+        if report.all_passed:
+            typer.secho(f"✅ Webhook Audit Passed ({report.passed_checks}/{report.total_checks} checks passed)", fg=typer.colors.GREEN, bold=True)
+        else:
+            typer.secho(f"❌ Webhook Audit Failed ({report.failed_checks}/{report.total_checks} checks failed)", fg=typer.colors.RED, bold=True)
+
+    if not report.all_passed:
+        raise typer.Exit(code=1)
+
+
+@webhook_app.command(name="dispatch")
+def webhook_dispatch(
+    url: str = typer.Argument(..., help="Target webhook endpoint URL"),
+    secret: str = typer.Option(..., "--secret", "-s", help="Webhook signing secret"),
+    event_type: str = typer.Option("test.event", "--event", "-e", help="Webhook event type"),
+    scheme: str = typer.Option("stripe_v1", "--scheme", help="Signature scheme: stripe_v1, github_sha256, hmac_sha256"),
+    chaos: str = typer.Option("none", "--chaos", "-c", help="Chaos mode: none, duplicate, invalid_signature, clock_skew"),
+    duplicates: int = typer.Option(2, "--duplicates", "-d", help="Number of duplicates if chaos=duplicate"),
+) -> None:
+    """Dispatch a synthetic signed webhook event with optional chaos injection."""
+    try:
+        sig_scheme = WebhookSignatureScheme(scheme)
+    except ValueError:
+        typer.secho(f"[FAIL] Invalid signature scheme '{scheme}'", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    try:
+        chaos_mode = WebhookChaosMode(chaos)
+    except ValueError:
+        typer.secho(f"[FAIL] Invalid chaos mode '{chaos}'", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    emitter = WebhookEmitter(target_url=url, secret=secret, scheme=sig_scheme)
+    dispatcher = ChaosWebhookDispatcher(emitter)
+
+    import uuid
+    evt = WebhookEvent(
+        event_id=f"evt_{uuid.uuid4().hex[:12]}",
+        event_type=event_type,
+        payload={"message": "RetryLab synthetic event", "timestamp": int(time.time())},
+    )
+
+    config = ChaosWebhookConfig(
+        mode=chaos_mode,
+        duplicate_count=duplicates,
+    )
+
+    typer.secho(f"⚡ Dispatching webhook event '{event_type}' to {url} (Chaos: {chaos_mode.value})...", fg=typer.colors.CYAN)
+    results = dispatcher.dispatch_with_chaos(evt, config)
+
+    for res in results:
+        badge = "[PASS]" if res.success else "[WARN]"
+        color = typer.colors.GREEN if res.success else typer.colors.YELLOW
+        typer.secho(f"{badge} Attempt {res.attempt_index}: HTTP {res.status_code} (Event ID: {res.event_id})", fg=color)
 
 
 if __name__ == "__main__":
