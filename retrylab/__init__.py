@@ -29,6 +29,11 @@ from retrylab.idempotency import (
     IdempotencyViolation,
     IdempotencyViolationType,
 )
+from retrylab.patterns import (
+    CircuitBreakerAuditor,
+    CircuitBreakerViolation,
+    CircuitBreakerViolationType,
+)
 from retrylab.latency import (
     LatencyDistribution,
     LatencyProfile,
@@ -96,6 +101,10 @@ __all__ = [
     "SchemaDriftError",
     "DriftType",
     "DriftViolation",
+    # Patterns & Circuit Breakers
+    "CircuitBreakerAuditor",
+    "CircuitBreakerViolation",
+    "CircuitBreakerViolationType",
     # Reporting
     "ReliabilityReport",
     "generate_reliability_report",
