@@ -65,6 +65,11 @@ from retrylab.scenarios import (
     load_scenarios_from_dir,
 )
 from retrylab.security import DataRedactor
+from retrylab.webhooks import (
+    WebhookEmitter,
+    WebhookEvent,
+    WebhookSignatureScheme,
+)
 from retrylab.transport import (
     AsyncRetryLabTransport,
     RetryLabTransport,
@@ -112,6 +117,10 @@ __all__ = [
     "RecordedInteraction",
     "TrafficRecorder",
     "ReplayTransport",
+    # Webhooks
+    "WebhookEmitter",
+    "WebhookEvent",
+    "WebhookSignatureScheme",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
