@@ -86,6 +86,12 @@ from retrylab.webhooks import (
     compute_webhook_signature,
     verify_webhook_signature,
 )
+from retrylab.streaming import (
+    SSEEvent,
+    SSEStreamParser,
+    StreamingByteIterator,
+    StreamingFaultTransport,
+)
 from retrylab.transport import (
     AsyncRetryLabTransport,
     RetryLabTransport,
@@ -153,6 +159,11 @@ __all__ = [
     "ForwardingResult",
     "WebhookForwarder",
     "WebhookReplayEngine",
+    # Streaming & SSE
+    "SSEEvent",
+    "SSEStreamParser",
+    "StreamingByteIterator",
+    "StreamingFaultTransport",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
