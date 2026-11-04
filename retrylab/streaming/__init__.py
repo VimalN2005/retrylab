@@ -8,10 +8,18 @@ from retrylab.streaming.interceptor import (
     StreamingByteIterator,
     StreamingFaultTransport,
 )
+from retrylab.streaming.chaos import (
+    ChaosStreamGenerator,
+    StreamingChaosConfig,
+    StreamingChaosMode,
+)
 
 __all__ = [
     "SSEEvent",
     "SSEStreamParser",
     "StreamingByteIterator",
     "StreamingFaultTransport",
+    "ChaosStreamGenerator",
+    "StreamingChaosConfig",
+    "StreamingChaosMode",
 ]

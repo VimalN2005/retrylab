@@ -87,9 +87,12 @@ from retrylab.webhooks import (
     verify_webhook_signature,
 )
 from retrylab.streaming import (
+    ChaosStreamGenerator,
     SSEEvent,
     SSEStreamParser,
     StreamingByteIterator,
+    StreamingChaosConfig,
+    StreamingChaosMode,
     StreamingFaultTransport,
 )
 from retrylab.transport import (
@@ -164,6 +167,9 @@ __all__ = [
     "SSEStreamParser",
     "StreamingByteIterator",
     "StreamingFaultTransport",
+    "ChaosStreamGenerator",
+    "StreamingChaosConfig",
+    "StreamingChaosMode",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
