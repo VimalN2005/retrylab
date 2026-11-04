@@ -13,6 +13,11 @@ from retrylab.streaming.chaos import (
     StreamingChaosConfig,
     StreamingChaosMode,
 )
+from retrylab.streaming.presets import (
+    build_anthropic_messages_stream,
+    build_openai_chat_stream,
+    create_streaming_fault_transport,
+)
 
 __all__ = [
     "SSEEvent",
@@ -22,4 +27,7 @@ __all__ = [
     "ChaosStreamGenerator",
     "StreamingChaosConfig",
     "StreamingChaosMode",
+    "build_openai_chat_stream",
+    "build_anthropic_messages_stream",
+    "create_streaming_fault_transport",
 ]

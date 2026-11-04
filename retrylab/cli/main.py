@@ -35,6 +35,14 @@ from retrylab.webhooks import (
     WebhookSignatureScheme,
     create_receiver_server,
 )
+from retrylab.streaming import (
+    ChaosStreamGenerator,
+    SSEStreamParser,
+    StreamingChaosConfig,
+    StreamingChaosMode,
+    build_anthropic_messages_stream,
+    build_openai_chat_stream,
+)
 
 app = typer.Typer(
     name="retrylab",
@@ -420,6 +428,74 @@ def webhook_replay(
     else:
         typer.secho(f"❌ Replay Complete with errors: {failed}/{len(results)} failed.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(code=1)
+
+
+stream_app = typer.Typer(
+    name="stream",
+    help="Streaming response and LLM token disruption testing.",
+    no_args_is_help=True,
+)
+app.add_typer(stream_app, name="stream")
+
+
+@stream_app.command(name="simulate")
+def stream_simulate(
+    preset: str = typer.Option("openai", "--preset", "-p", help="AI provider preset: openai, anthropic"),
+    text: str = typer.Option("The rapid brown fox leaps cleanly across the sleeping hound.", "--text", "-t", help="Simulated generated text"),
+    chaos: str = typer.Option("truncate", "--chaos", "-c", help="Chaos mode: none, truncate, drop_chunks, corrupt_json, mid_stream_stall, inject_error"),
+    truncate_after: int = typer.Option(4, "--truncate-after", help="Chunks emitted before premature truncation"),
+    stall_seconds: float = typer.Option(0.5, "--stall-seconds", help="Stall duration in seconds"),
+) -> None:
+    """Simulate streaming LLM token delivery with mid-stream chaos injection."""
+    try:
+        chaos_mode = StreamingChaosMode(chaos)
+    except ValueError:
+        typer.secho(f"[FAIL] Invalid chaos mode '{chaos}'", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    typer.secho(f"🌊 Simulating {preset.upper()} Token Stream with Chaos: {chaos_mode.value.upper()}", fg=typer.colors.CYAN, bold=True)
+
+    if preset.lower() == "anthropic":
+        raw_events = build_anthropic_messages_stream(text)
+    else:
+        raw_events = build_openai_chat_stream(text)
+
+    cfg = StreamingChaosConfig(
+        mode=chaos_mode,
+        truncate_after_chunks=truncate_after,
+        stall_seconds=stall_seconds,
+    )
+
+    generator = ChaosStreamGenerator(raw_events, cfg)
+    parser = SSEStreamParser()
+
+    typer.echo("─" * 60)
+    typer.secho("Client Streaming Output: ", bold=True, nl=False)
+
+    for chunk in generator:
+        events = parser.feed(chunk)
+        for ev in events:
+            if ev.event == "error":
+                typer.secho(f"\n[STREAM ERROR EVENT] {ev.data}", fg=typer.colors.RED, bold=True)
+            elif ev.data == "[DONE]":
+                typer.secho("\n[STREAM COMPLETE: [DONE]]", fg=typer.colors.GREEN)
+            else:
+                try:
+                    payload = json.loads(ev.data)
+                    if "choices" in payload and payload["choices"]:
+                        delta = payload["choices"][0]["delta"].get("content", "")
+                        typer.secho(delta, nl=False, fg=typer.colors.YELLOW)
+                    elif "delta" in payload:
+                        delta = payload["delta"].get("text", "")
+                        typer.secho(delta, nl=False, fg=typer.colors.YELLOW)
+                except Exception:
+                    typer.secho(f"\n[CORRUPTED CHUNK] {ev.data}", fg=typer.colors.RED)
+
+    typer.echo("\n" + "─" * 60)
+    if generator.fault_injected:
+        typer.secho(f"💥 Fault Triggered: {generator.fault_injected}", fg=typer.colors.RED, bold=True)
+    else:
+        typer.secho("✅ Stream Finished with No Injected Faults", fg=typer.colors.GREEN)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/VimalN2005/retrylab/actions/workflows/ci.yml/badge.svg)](https://github.com/VimalN2005/retrylab/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-99%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-114%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -103,6 +103,7 @@ Here is RetryLab running an automated recovery and idempotency audit on a simula
 | **GitHub Actions CI Quality Gate** | ✅ Ready | Official GitHub Action & `retrylab gate` command for PR step summaries. |
 | **Webhook Resilience & Chaos Engine** | ✅ Ready | HMAC signature forging, duplicate delivery, clock skew, and receiver audit CLI. |
 | **Webhook Mock Receiver & Forwarding** | ✅ Ready | Local event inspector, forwarding tunnel (`retrylab webhook listen`), and offline fixture replay. |
+| **SSE & LLM Streaming Disruption** | ✅ Ready | Mid-stream truncation, token dropouts, malformed JSON, stalls, and OpenAI/Anthropic presets. |
 
 ---
 
@@ -237,6 +238,18 @@ retrylab webhook listen --port 8085 --secret "whsec_test" --fail-first 2 --fail-
 retrylab webhook replay fixtures/stripe_webhooks.json --target http://localhost:8000/api/webhook
 ```
 
+### 6. AI Agent & LLM Stream Disruption
+
+Simulate mid-stream network dropouts and corrupted token deltas against OpenAI or Anthropic streaming endpoints:
+
+```bash
+# Simulate premature stream truncation (disconnect after 4 tokens)
+retrylab stream simulate --preset openai --chaos truncate --truncate-after 4
+
+# Simulate mid-stream API 503 generation crash
+retrylab stream simulate --preset anthropic --chaos inject_error
+```
+
 ---
 
 ## 📐 Design Principles
@@ -254,7 +267,7 @@ retrylab webhook replay fixtures/stripe_webhooks.json --target http://localhost:
 | Phase | Timeline | Focus | Status |
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
-| **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhook failure emulation, async stream disruption, TCP socket cutoffs, dynamic chaos scheduling | ⚡ **In Progress (Days 8 & 9 Complete)** |
+| **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhook failure emulation, async stream disruption, TCP socket cutoffs, dynamic chaos scheduling | ⚡ **In Progress (Days 8, 9 & 10 Complete)** |
 | **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Go SDK alpha, Node.js SDK alpha, enhanced PR scorecard generator | Planned |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
 

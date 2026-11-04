@@ -94,6 +94,9 @@ from retrylab.streaming import (
     StreamingChaosConfig,
     StreamingChaosMode,
     StreamingFaultTransport,
+    build_anthropic_messages_stream,
+    build_openai_chat_stream,
+    create_streaming_fault_transport,
 )
 from retrylab.transport import (
     AsyncRetryLabTransport,
@@ -170,6 +173,9 @@ __all__ = [
     "ChaosStreamGenerator",
     "StreamingChaosConfig",
     "StreamingChaosMode",
+    "build_openai_chat_stream",
+    "build_anthropic_messages_stream",
+    "create_streaming_fault_transport",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
