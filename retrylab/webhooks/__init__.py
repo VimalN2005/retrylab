@@ -26,6 +26,12 @@ from retrylab.webhooks.server import (
     WebhookReceiverFaultConfig,
     create_receiver_server,
 )
+from retrylab.webhooks.forwarder import (
+    ForwardingResult,
+    ForwardingRule,
+    WebhookForwarder,
+    WebhookReplayEngine,
+)
 
 __all__ = [
     "WebhookEmitter",
@@ -44,4 +50,8 @@ __all__ = [
     "ReceivedWebhookEvent",
     "WebhookReceiverFaultConfig",
     "create_receiver_server",
+    "ForwardingRule",
+    "ForwardingResult",
+    "WebhookForwarder",
+    "WebhookReplayEngine",
 ]
