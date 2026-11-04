@@ -63,6 +63,79 @@ def compute_webhook_signature(
     raise ValueError(f"Unsupported signature scheme: {scheme}")
 
 
+def verify_webhook_signature(
+    headers: dict[str, str],
+    body: bytes,
+    secret: str,
+    scheme: WebhookSignatureScheme,
+    tolerance_seconds: int | None = 300,
+) -> tuple[bool, str]:
+    """
+    Cryptographically verifies an incoming webhook request signature.
+    Returns (is_valid, reason_message).
+    """
+    # Normalize header keys to lowercase for robust lookup
+    norm_headers = {k.lower(): v for k, v in headers.items()}
+    secret_bytes = secret.encode("utf-8")
+
+    if scheme == WebhookSignatureScheme.STRIPE_V1:
+        sig_header = norm_headers.get("stripe-signature")
+        if not sig_header:
+            return False, "Missing 'Stripe-Signature' header"
+
+        parts: dict[str, str] = {}
+        for item in sig_header.split(","):
+            if "=" in item:
+                k, v = item.strip().split("=", 1)
+                parts[k] = v
+
+        ts_str = parts.get("t")
+        v1_sig = parts.get("v1")
+        if not ts_str or not v1_sig:
+            return False, "Malformed 'Stripe-Signature' header; missing 't' or 'v1'"
+
+        try:
+            ts = int(ts_str)
+        except ValueError:
+            return False, f"Invalid timestamp value in Stripe-Signature: {ts_str}"
+
+        if tolerance_seconds is not None:
+            if abs(time.time() - ts) > tolerance_seconds:
+                return False, f"Timestamp {ts} outside tolerance window of {tolerance_seconds}s"
+
+        signed_payload = f"{ts}.".encode("utf-8") + body
+        expected_sig = hmac.new(secret_bytes, signed_payload, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(v1_sig, expected_sig):
+            return False, "Signature mismatch"
+        return True, "Valid Stripe signature"
+
+    elif scheme == WebhookSignatureScheme.GITHUB_SHA256:
+        sig_header = norm_headers.get("x-hub-signature-256")
+        if not sig_header:
+            return False, "Missing 'X-Hub-Signature-256' header"
+
+        if not sig_header.startswith("sha256="):
+            return False, "Malformed 'X-Hub-Signature-256'; must start with 'sha256='"
+
+        provided_sig = sig_header[len("sha256=") :]
+        expected_sig = hmac.new(secret_bytes, body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(provided_sig, expected_sig):
+            return False, "Signature mismatch"
+        return True, "Valid GitHub SHA256 signature"
+
+    elif scheme == WebhookSignatureScheme.HMAC_SHA256:
+        sig_header = norm_headers.get("x-signature")
+        if not sig_header:
+            return False, "Missing 'X-Signature' header"
+
+        expected_sig = hmac.new(secret_bytes, body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig_header, expected_sig):
+            return False, "Signature mismatch"
+        return True, "Valid HMAC signature"
+
+    return False, f"Unsupported signature scheme: {scheme}"
+
+
 class WebhookEmitter:
     """
     Dispatches cryptographic webhook events to local or remote endpoints.
