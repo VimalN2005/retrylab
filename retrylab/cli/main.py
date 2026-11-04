@@ -20,12 +20,20 @@ from retrylab.scenarios import SequentialScenario, load_scenario_from_yaml, load
 from retrylab.webhooks import (
     ChaosWebhookConfig,
     ChaosWebhookDispatcher,
+    ForwardingResult,
+    ForwardingRule,
+    MockWebhookReceiver,
+    ReceivedWebhookEvent,
     WebhookAuditReport,
     WebhookChaosMode,
     WebhookEmitter,
     WebhookEvent,
+    WebhookForwarder,
     WebhookReceiverAuditor,
+    WebhookReceiverFaultConfig,
+    WebhookReplayEngine,
     WebhookSignatureScheme,
+    create_receiver_server,
 )
 
 app = typer.Typer(
@@ -290,6 +298,128 @@ def webhook_dispatch(
         badge = "[PASS]" if res.success else "[WARN]"
         color = typer.colors.GREEN if res.success else typer.colors.YELLOW
         typer.secho(f"{badge} Attempt {res.attempt_index}: HTTP {res.status_code} (Event ID: {res.event_id})", fg=color)
+
+
+@webhook_app.command(name="listen")
+def webhook_listen(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host address to bind"),
+    port: int = typer.Option(8085, "--port", "-p", help="Port to listen for incoming webhooks"),
+    secret: Optional[str] = typer.Option(None, "--secret", "-s", help="Webhook secret key for signature verification"),
+    scheme: str = typer.Option("stripe_v1", "--scheme", help="Signature scheme: stripe_v1, github_sha256, hmac_sha256"),
+    forward_to: Optional[str] = typer.Option(None, "--forward-to", "-f", help="Target URL to forward incoming webhooks to"),
+    fail_first: int = typer.Option(0, "--fail-first", "-n", help="Fail the first N deliveries with HTTP status code"),
+    fail_status: int = typer.Option(500, "--fail-status", help="HTTP status code to return when failing first N"),
+    delay: float = typer.Option(0.0, "--delay", help="Artificial processing delay in seconds"),
+) -> None:
+    """Start local mock webhook receiver endpoint with signature verification & fault simulation."""
+    try:
+        sig_scheme = WebhookSignatureScheme(scheme)
+    except ValueError:
+        typer.secho(f"[FAIL] Invalid signature scheme '{scheme}'", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    forwarder: Optional[WebhookForwarder] = None
+    if forward_to:
+        rule = ForwardingRule(target_url=forward_to)
+        forwarder = WebhookForwarder(rule=rule)
+
+    def on_event(evt: ReceivedWebhookEvent) -> None:
+        badge = "[RECV]"
+        sig_info = f"Sig: {evt.signature_valid}" if evt.signature_valid is not None else "Sig: unchecked"
+        fault_info = f" [Fault: {evt.injected_fault}]" if evt.injected_fault else ""
+        typer.secho(
+            f"{badge} {evt.event_type or 'unknown'} (ID: {evt.event_id or 'none'}) -> HTTP {evt.response_status} ({sig_info}){fault_info}",
+            fg=typer.colors.CYAN if evt.response_status < 400 else typer.colors.YELLOW,
+        )
+        if forwarder:
+            fwd_results = forwarder.forward_event(evt)
+            for fwd in fwd_results:
+                fwd_color = typer.colors.GREEN if fwd.success else typer.colors.RED
+                typer.secho(
+                    f"   └─> Forwarded to {fwd.target_url} -> HTTP {fwd.status_code} ({fwd.latency_ms}ms)",
+                    fg=fwd_color,
+                )
+
+    fault_config = WebhookReceiverFaultConfig(
+        fail_first_n=fail_first,
+        fail_status_code=fail_status,
+        delay_seconds=delay,
+    )
+
+    receiver = MockWebhookReceiver(
+        secret=secret,
+        scheme=sig_scheme,
+        fault_config=fault_config,
+        on_event_received=on_event,
+    )
+
+    typer.secho(f"🚀 Starting RetryLab Webhook Listener on http://{host}:{port}", fg=typer.colors.GREEN, bold=True)
+    if secret:
+        typer.echo(f"  Secret:      Configured [{sig_scheme.value}]")
+    if forward_to:
+        typer.echo(f"  Forward To:  {forward_to}")
+    if fail_first > 0:
+        typer.echo(f"  Chaos Rule:  Fail first {fail_first} delivery attempt(s) with HTTP {fail_status}")
+    typer.echo(f"  Events Log:  http://localhost:{port}/_retrylab/events")
+    typer.echo("\nPress Ctrl+C to terminate.")
+
+    server = create_receiver_server(receiver, host=host, port=port)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        typer.echo("\nShutting down RetryLab webhook listener.")
+        server.shutdown()
+
+
+@webhook_app.command(name="replay")
+def webhook_replay(
+    fixture_path: Path = typer.Argument(..., help="Path to recorded webhook JSON fixture file"),
+    target: str = typer.Option(..., "--target", "-t", help="Target endpoint URL to replay events to"),
+    interval: float = typer.Option(0.05, "--interval", "-i", help="Delay in seconds between replayed events"),
+    reverse: bool = typer.Option(False, "--reverse", "-r", help="Replay in reverse order (simulate out-of-order)"),
+) -> None:
+    """Replay recorded webhook events against a target endpoint."""
+    if not fixture_path.exists():
+        typer.secho(f"[FAIL] Fixture file not found: {fixture_path}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    engine = WebhookReplayEngine()
+    try:
+        events = engine.load_fixture_file(fixture_path)
+    except Exception as exc:
+        typer.secho(f"[FAIL] Failed to load fixture: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    typer.secho(
+        f"⚡ Replaying {len(events)} webhook event(s) to {target} (Reverse: {reverse})...",
+        fg=typer.colors.CYAN,
+        bold=True,
+    )
+
+    results = engine.replay_events(
+        events=events,
+        target_url=target,
+        delay_between_events=interval,
+        reverse_order=reverse,
+    )
+
+    for idx, res in enumerate(results, 1):
+        color = typer.colors.GREEN if res.success else typer.colors.RED
+        badge = "[PASS]" if res.success else "[FAIL]"
+        err = f" - Error: {res.error_message}" if res.error_message else ""
+        typer.secho(
+            f"{badge} ({idx}/{len(results)}) Event {res.event_id or 'none'} -> HTTP {res.status_code} ({res.latency_ms}ms){err}",
+            fg=color,
+        )
+
+    succeeded = sum(1 for r in results if r.success)
+    failed = len(results) - succeeded
+    typer.echo("")
+    if failed == 0:
+        typer.secho(f"✅ Replay Complete: {succeeded}/{len(results)} delivered successfully.", fg=typer.colors.GREEN, bold=True)
+    else:
+        typer.secho(f"❌ Replay Complete with errors: {failed}/{len(results)} failed.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

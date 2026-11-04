@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/VimalN2005/retrylab/actions/workflows/ci.yml/badge.svg)](https://github.com/VimalN2005/retrylab/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-84%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-99%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -102,6 +102,7 @@ Here is RetryLab running an automated recovery and idempotency audit on a simula
 | **Circuit Breaker Auditor** | ✅ Ready | Verifies client fail-fast behavior and prevents cascading thundering herds. |
 | **GitHub Actions CI Quality Gate** | ✅ Ready | Official GitHub Action & `retrylab gate` command for PR step summaries. |
 | **Webhook Resilience & Chaos Engine** | ✅ Ready | HMAC signature forging, duplicate delivery, clock skew, and receiver audit CLI. |
+| **Webhook Mock Receiver & Forwarding** | ✅ Ready | Local event inspector, forwarding tunnel (`retrylab webhook listen`), and offline fixture replay. |
 
 ---
 
@@ -228,6 +229,12 @@ retrylab webhook audit http://localhost:8000/api/v1/webhooks/stripe --secret "wh
 
 # Dispatch duplicate synthetic events to test idempotent at-least-once ingestion
 retrylab webhook dispatch http://localhost:8000/api/v1/webhooks/stripe --secret "whsec_test" --chaos duplicate --duplicates 3
+
+# Start a local mock webhook listener with fault injection (fail first 2 attempts with HTTP 500)
+retrylab webhook listen --port 8085 --secret "whsec_test" --fail-first 2 --fail-status 500 --forward-to http://localhost:8000/api/webhook
+
+# Replay recorded webhook event fixtures against an endpoint
+retrylab webhook replay fixtures/stripe_webhooks.json --target http://localhost:8000/api/webhook
 ```
 
 ---
@@ -247,7 +254,7 @@ retrylab webhook dispatch http://localhost:8000/api/v1/webhooks/stripe --secret 
 | Phase | Timeline | Focus | Status |
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
-| **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhook failure emulation, async stream disruption, TCP socket cutoffs, dynamic chaos scheduling | ⚡ **In Progress (Day 8 Complete)** |
+| **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhook failure emulation, async stream disruption, TCP socket cutoffs, dynamic chaos scheduling | ⚡ **In Progress (Days 8 & 9 Complete)** |
 | **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Go SDK alpha, Node.js SDK alpha, enhanced PR scorecard generator | Planned |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
 
