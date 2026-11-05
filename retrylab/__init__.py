@@ -98,6 +98,11 @@ from retrylab.streaming import (
     build_openai_chat_stream,
     create_streaming_fault_transport,
 )
+from retrylab.socket import (
+    SocketChaosConfig,
+    SocketFaultSimulator,
+    SocketFaultType,
+)
 from retrylab.transport import (
     AsyncRetryLabTransport,
     RetryLabTransport,
@@ -176,6 +181,10 @@ __all__ = [
     "build_openai_chat_stream",
     "build_anthropic_messages_stream",
     "create_streaming_fault_transport",
+    # Socket & TCP Chaos
+    "SocketChaosConfig",
+    "SocketFaultSimulator",
+    "SocketFaultType",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
