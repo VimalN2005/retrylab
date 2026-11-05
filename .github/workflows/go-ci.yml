@@ -1,0 +1,39 @@
+name: Go SDK CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sdk/go/**'
+      - '.github/workflows/go-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'sdk/go/**'
+      - '.github/workflows/go-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.22', '1.23']
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Run Go Tests
+        run: |
+          cd sdk/go
+          go test -v -race ./...
+
+      - name: Run Go Stripe Demo
+        run: |
+          cd sdk/go
+          go run ./examples/stripe_resilience/main.go

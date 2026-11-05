@@ -8,7 +8,8 @@
 
 [![CI](https://github.com/VimalN2005/retrylab/actions/workflows/ci.yml/badge.svg)](https://github.com/VimalN2005/retrylab/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-132%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
+[![Tests](https://img.shields.io/badge/tests-134%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -105,6 +106,7 @@ Here is RetryLab running an automated recovery and idempotency audit on a simula
 | **Webhook Mock Receiver & Forwarding** | ✅ Ready | Local event inspector, forwarding tunnel (`retrylab webhook listen`), and offline fixture replay. |
 | **SSE & LLM Streaming Disruption** | ✅ Ready | Mid-stream truncation, token dropouts, malformed JSON, stalls, and OpenAI/Anthropic presets. |
 | **Socket & TCP Layer Chaos** | ✅ Ready | TCP RST connection resets, silent blackhole drops, slow drip trickle, and premature EOF. |
+| **Go SDK (`http.RoundTripper`)** | ✅ Ready | In-process Go transport interceptor, SHA-256 idempotency auditor & backoff timing verifier. |
 
 ---
 
@@ -266,6 +268,33 @@ retrylab socket simulate --fault silent_drop --timeout 1.0
 retrylab socket simulate --fault slow_drip --drip-rate 4
 ```
 
+### 8. Cross-Language Go SDK (`http.RoundTripper`)
+
+In Go microservices and backends, inject failure scenarios directly into standard Go `http.Client`:
+
+```go
+package main
+
+import (
+    "net/http"
+    "github.com/VimalN2005/retrylab/sdk/go/retrylab"
+)
+
+func main() {
+    // Intercept outbound calls to api.stripe.com: fail first 2 attempts with HTTP 429
+    transport := retrylab.NewTransport(retrylab.Scenario{
+        URLPattern:    "api.stripe.com",
+        Fault:         retrylab.FaultHTTPStatus,
+        FailCount:     2,
+        StatusCode:    http.StatusTooManyRequests,
+        RecoverStatus: http.StatusOK,
+    })
+
+    client := &http.Client{Transport: transport}
+    // Your Go application logic here...
+}
+```
+
 ---
 
 ## 📐 Design Principles
@@ -283,8 +312,8 @@ retrylab socket simulate --fault slow_drip --drip-rate 4
 | Phase | Timeline | Focus | Status |
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
-| **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhook failure emulation, async stream disruption, TCP socket cutoffs, dynamic chaos scheduling | ⚡ **In Progress (Days 8, 9, 10 & 11 Complete)** |
-| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Go SDK alpha, Node.js SDK alpha, enhanced PR scorecard generator | Planned |
+| **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhook failure emulation, async stream disruption, TCP socket cutoffs, dynamic chaos scheduling | ⚡ **In Progress (Days 8 – 11 Complete)** |
+| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Go SDK alpha, Node.js SDK alpha, enhanced PR scorecard generator | ⚡ **In Progress (Go SDK Alpha Released)** |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
 
 ---
