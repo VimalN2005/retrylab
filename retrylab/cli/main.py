@@ -8,6 +8,7 @@ import json
 import time
 from pathlib import Path
 from typing import Optional
+import httpx
 import typer
 
 from retrylab import __version__
@@ -42,6 +43,11 @@ from retrylab.streaming import (
     StreamingChaosMode,
     build_anthropic_messages_stream,
     build_openai_chat_stream,
+)
+from retrylab.socket import (
+    SocketChaosConfig,
+    SocketChaosTransport,
+    SocketFaultType,
 )
 
 app = typer.Typer(
@@ -496,6 +502,64 @@ def stream_simulate(
         typer.secho(f"💥 Fault Triggered: {generator.fault_injected}", fg=typer.colors.RED, bold=True)
     else:
         typer.secho("✅ Stream Finished with No Injected Faults", fg=typer.colors.GREEN)
+
+
+socket_app = typer.Typer(
+    name="socket",
+    help="Low-level TCP and raw socket chaos simulation commands.",
+    no_args_is_help=True,
+)
+app.add_typer(socket_app, name="socket")
+
+
+@socket_app.command(name="simulate")
+def socket_simulate(
+    fault: str = typer.Option("connection_reset", "--fault", "-f", help="Fault type: connection_reset, silent_drop, slow_drip, malformed_raw, premature_close"),
+    url: str = typer.Option("https://api.internal/v1/resource", "--url", "-u", help="Simulated target URL"),
+    timeout: float = typer.Option(0.2, "--timeout", help="Drop timeout duration in seconds"),
+    drip_rate: int = typer.Option(4, "--drip-rate", help="Bytes per chunk for slow drip"),
+) -> None:
+    """Simulate low-level TCP connection anomalies and test client exception handling."""
+    try:
+        fault_type = SocketFaultType(fault)
+    except ValueError:
+        typer.secho(f"[FAIL] Invalid socket fault '{fault}'. Choose from: connection_reset, silent_drop, slow_drip, malformed_raw, premature_close", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    typer.secho(f"🔌 Simulating Low-Level Socket Fault: {fault_type.value.upper()}", fg=typer.colors.CYAN, bold=True)
+    typer.echo(f"  Target URL: {url}")
+
+    cfg = SocketChaosConfig(
+        fault_type=fault_type,
+        drop_timeout_seconds=timeout,
+        drip_bytes_per_chunk=drip_rate,
+    )
+
+    transport = SocketChaosTransport(config=cfg, default_body={"status": "ok", "message": "recovered payload"})
+    client = httpx.Client(transport=transport)
+
+    try:
+        t0 = time.perf_counter()
+        resp = client.get(url)
+        elapsed = (time.perf_counter() - t0) * 1000.0
+
+        if fault_type == SocketFaultType.SLOW_DRIP:
+            typer.secho(f"🐢 Slow Drip Received: HTTP {resp.status_code} in {elapsed:.1f}ms (Payload: {resp.text})", fg=typer.colors.YELLOW)
+        elif fault_type == SocketFaultType.MALFORMED_RAW_RESPONSE:
+            typer.secho(f"⚠️ Malformed Raw Wire Bytes Received: {resp.content!r}", fg=typer.colors.YELLOW)
+        else:
+            typer.secho(f"✅ Response: HTTP {resp.status_code} ({elapsed:.1f}ms)", fg=typer.colors.GREEN)
+
+    except httpx.RemoteProtocolError as exc:
+        typer.secho(f"💥 Client Exception: httpx.RemoteProtocolError: {exc}", fg=typer.colors.RED, bold=True)
+        typer.echo("💡 Recommendation: Catch RemoteProtocolError in client retry policy and re-attempt with backoff.")
+
+    except httpx.ReadTimeout as exc:
+        typer.secho(f"⏱️ Client Exception: httpx.ReadTimeout: {exc}", fg=typer.colors.RED, bold=True)
+        typer.echo("💡 Recommendation: Configure client read timeouts (< 5s) and verify circuit breaker triggers.")
+
+    except Exception as exc:
+        typer.secho(f"💥 Caught Exception: {type(exc).__name__}: {exc}", fg=typer.colors.RED)
 
 
 if __name__ == "__main__":
