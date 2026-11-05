@@ -99,7 +99,9 @@ from retrylab.streaming import (
     create_streaming_fault_transport,
 )
 from retrylab.socket import (
+    SocketChaosAdapter,
     SocketChaosConfig,
+    SocketChaosTransport,
     SocketFaultSimulator,
     SocketFaultType,
 )
@@ -185,6 +187,8 @@ __all__ = [
     "SocketChaosConfig",
     "SocketFaultSimulator",
     "SocketFaultType",
+    "SocketChaosTransport",
+    "SocketChaosAdapter",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
