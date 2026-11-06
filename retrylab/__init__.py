@@ -38,6 +38,10 @@ from retrylab.latency import (
     LatencyDistribution,
     LatencyProfile,
 )
+from retrylab.matrix import (
+    PolyglotChaosMatrix,
+    PolyglotScenarioSchema,
+)
 from retrylab.models import (
     FaultScenario,
     FaultType,
@@ -117,6 +121,8 @@ __all__ = [
     # Models & Scenarios
     "FaultScenario",
     "FaultType",
+    "PolyglotScenarioSchema",
+    "PolyglotChaosMatrix",
     "RecordedRequest",
     "SequentialScenario",
     "ScenarioStep",
