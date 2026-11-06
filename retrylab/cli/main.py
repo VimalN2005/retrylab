@@ -5,6 +5,7 @@ RetryLab CLI commands.
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -48,6 +49,11 @@ from retrylab.socket import (
     SocketChaosConfig,
     SocketChaosTransport,
     SocketFaultType,
+)
+from retrylab.tui import (
+    ReliabilityScorecard,
+    ScorecardEvaluator,
+    display_dashboard,
 )
 
 app = typer.Typer(
@@ -560,6 +566,117 @@ def socket_simulate(
 
     except Exception as exc:
         typer.secho(f"💥 Caught Exception: {type(exc).__name__}: {exc}", fg=typer.colors.RED)
+
+
+def _run_scenarios_and_audit(scenarios: list[Any]) -> list[ReliabilityReport]:
+    from retrylab.transport import RetryLabTransport
+    from retrylab.scenarios.sequential import SequentialScenario
+
+    reports: list[ReliabilityReport] = []
+    for sc in scenarios:
+        transport = RetryLabTransport(scenario=sc)
+        target_clean = sc.target.replace("*", "test_endpoint")
+        method = sc.method or "POST"
+        step_count = len(sc.steps) if isinstance(sc, SequentialScenario) else sc.fail_count + 1
+
+        with httpx.Client(transport=transport) as client:
+            for _ in range(step_count):
+                try:
+                    client.request(
+                        method,
+                        target_clean,
+                        json={"audit_test": True},
+                        headers={"Idempotency-Key": "scorecard_tx_1"},
+                    )
+                except httpx.HTTPError:
+                    pass
+
+        rep = generate_reliability_report(sc, idempotency_header="Idempotency-Key")
+        reports.append(rep)
+    return reports
+
+
+@app.command(name="dashboard")
+def dashboard_command(
+    scenario: Optional[Path] = typer.Option(None, "--scenario", "-s", help="Path to scenario YAML file to audit"),
+    dir: Optional[Path] = typer.Option(None, "--dir", "-d", help="Path to directory containing scenario YAML files"),
+    demo: bool = typer.Option(False, "--demo", help="Display multi-service demo dashboard"),
+) -> None:
+    """Launch interactive Rich Terminal User Interface (TUI) Reliability Dashboard."""
+    if demo or (scenario is None and dir is None):
+        scorecard = ScorecardEvaluator.generate_demo_scorecard()
+        display_dashboard(scorecard)
+        return
+
+    scenarios = []
+    if scenario is not None:
+        try:
+            scenarios.append(load_scenario_from_yaml(scenario))
+        except ScenarioValidationError as err:
+            typer.secho(f"[FAIL] Could not load scenario '{scenario}': {err}", fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+    elif dir is not None:
+        try:
+            sc_dict = load_scenarios_from_dir(dir)
+            scenarios.extend(sc_dict.values())
+        except ScenarioValidationError as err:
+            typer.secho(f"[FAIL] Could not load scenarios from '{dir}': {err}", fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+
+    reports = _run_scenarios_and_audit(scenarios)
+    scorecard = ScorecardEvaluator.evaluate_reports(reports)
+    display_dashboard(scorecard)
+
+
+@app.command(name="scorecard")
+def scorecard_command(
+    scenario: Optional[Path] = typer.Option(None, "--scenario", "-s", help="Path to scenario YAML file to audit"),
+    dir: Optional[Path] = typer.Option(None, "--dir", "-d", help="Path to directory containing scenario YAML files"),
+    demo: bool = typer.Option(False, "--demo", help="Use multi-service demo scenario battery"),
+    format: str = typer.Option("tui", "--format", "-f", help="Output format: tui, json, markdown"),
+    fail_under: float = typer.Option(70.0, "--fail-under", help="Minimum required score (0-100) before exiting with code 1"),
+) -> None:
+    """Generate and display multi-dimensional API reliability scorecard with letter grade."""
+    if demo or (scenario is None and dir is None):
+        scorecard = ScorecardEvaluator.generate_demo_scorecard()
+    else:
+        scenarios = []
+        if scenario is not None:
+            try:
+                scenarios.append(load_scenario_from_yaml(scenario))
+            except ScenarioValidationError as err:
+                typer.secho(f"[FAIL] Could not load scenario '{scenario}': {err}", fg=typer.colors.RED)
+                raise typer.Exit(code=1)
+        elif dir is not None:
+            try:
+                sc_dict = load_scenarios_from_dir(dir)
+                scenarios.extend(sc_dict.values())
+            except ScenarioValidationError as err:
+                typer.secho(f"[FAIL] Could not load scenarios from '{dir}': {err}", fg=typer.colors.RED)
+                raise typer.Exit(code=1)
+
+        reports = _run_scenarios_and_audit(scenarios)
+        scorecard = ScorecardEvaluator.evaluate_reports(reports)
+
+    if format == "json":
+        typer.echo(scorecard.to_json())
+    elif format == "markdown":
+        md_text = scorecard.to_markdown()
+        try:
+            typer.echo(md_text)
+        except UnicodeEncodeError:
+            safe_text = md_text.encode(sys.stdout.encoding or "ascii", errors="replace").decode(sys.stdout.encoding or "ascii")
+            typer.echo(safe_text)
+    else:
+        display_dashboard(scorecard)
+
+    if scorecard.overall_score < fail_under:
+        typer.secho(
+            f"\n[FAIL] Scorecard failed threshold: {scorecard.overall_score:.1f} < {fail_under:.1f} (Grade: {scorecard.letter_grade.value})",
+            fg=typer.colors.RED,
+            bold=True,
+        )
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

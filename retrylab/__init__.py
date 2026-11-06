@@ -2,6 +2,8 @@
 RetryLab: Deterministic Third-Party API Failure Simulation & Resilience Testing Engine.
 """
 
+__version__ = "0.2.0-alpha.1"
+
 from retrylab.adapters.requests_adapter import RetryLabAdapter
 from retrylab.assertions import (
     BackoffAuditor,
@@ -61,6 +63,15 @@ from retrylab.reporting import (
     ReliabilityReport,
     generate_reliability_report,
 )
+from retrylab.tui import (
+    EndpointResilienceEntry,
+    MetricScore,
+    ReliabilityScorecard,
+    ScorecardEvaluator,
+    ScorecardGrade,
+    display_dashboard,
+    render_dashboard_layout,
+)
 from retrylab.scenarios import (
     ScenarioStep,
     SequentialScenario,
@@ -114,8 +125,6 @@ from retrylab.transport import (
     RetryLabTransport,
 )
 
-__version__ = "0.2.0-alpha.1"
-
 __all__ = [
     "__version__",
     # Models & Scenarios
@@ -154,6 +163,14 @@ __all__ = [
     # Reporting
     "ReliabilityReport",
     "generate_reliability_report",
+    # TUI & Scorecard
+    "EndpointResilienceEntry",
+    "MetricScore",
+    "ReliabilityScorecard",
+    "ScorecardEvaluator",
+    "ScorecardGrade",
+    "display_dashboard",
+    "render_dashboard_layout",
     # Recorder & Replay
     "RecordedInteraction",
     "TrafficRecorder",
