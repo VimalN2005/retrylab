@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from retrylab import __version__
 from retrylab.cli.main import app
 
 runner = CliRunner()
@@ -15,7 +16,7 @@ runner = CliRunner()
 def test_cli_version():
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
-    assert "RetryLab v0.1.0-alpha.1" in result.stdout
+    assert f"RetryLab v{__version__}" in result.stdout
 
 
 def test_cli_validate_file():
