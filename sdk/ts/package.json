@@ -1,0 +1,31 @@
+{
+  "name": "@retrylab/retrylab",
+  "version": "0.1.0-alpha.1",
+  "description": "Deterministic API Reliability & Chaos Engineering Toolkit for TypeScript & Node.js",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts"
+  },
+  "keywords": [
+    "retry",
+    "reliability",
+    "chaos-engineering",
+    "fault-injection",
+    "fetch",
+    "axios",
+    "testing",
+    "idempotency"
+  ],
+  "author": "VimalN2005",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VimalN2005/retrylab.git",
+    "directory": "sdk/ts"
+  }
+}
