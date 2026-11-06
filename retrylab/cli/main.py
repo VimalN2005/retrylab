@@ -51,6 +51,7 @@ from retrylab.socket import (
     SocketFaultType,
 )
 from retrylab.tui import (
+    InteractiveScenarioRunner,
     ReliabilityScorecard,
     ScorecardEvaluator,
     display_dashboard,
@@ -676,6 +677,26 @@ def scorecard_command(
             fg=typer.colors.RED,
             bold=True,
         )
+        raise typer.Exit(code=1)
+
+
+@app.command(name="play")
+def play_command(
+    scenario_path: Path = typer.Argument(..., help="Path to scenario YAML file to play"),
+    step: bool = typer.Option(False, "--step", help="Wait for user input between retry attempts"),
+    delay: float = typer.Option(0.05, "--delay", help="Artificial delay in seconds between attempts"),
+) -> None:
+    """Execute scenario with step-by-step terminal visualization and live audit."""
+    try:
+        scenario = load_scenario_from_yaml(scenario_path)
+    except ScenarioValidationError as err:
+        typer.secho(f"[FAIL] Could not load scenario '{scenario_path}': {err}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    runner = InteractiveScenarioRunner(scenario=scenario)
+    report = runner.run(auto_delay=delay, interactive_step=step)
+
+    if not report.recovery_successful or not report.idempotency_passed or not report.backoff_passed:
         raise typer.Exit(code=1)
 
 

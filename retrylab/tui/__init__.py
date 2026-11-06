@@ -14,9 +14,11 @@ from retrylab.tui.dashboard import (
     display_dashboard,
     render_dashboard_layout,
 )
+from retrylab.tui.runner import InteractiveScenarioRunner
 
 __all__ = [
     "EndpointResilienceEntry",
+    "InteractiveScenarioRunner",
     "MetricScore",
     "ReliabilityScorecard",
     "ScorecardEvaluator",
