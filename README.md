@@ -10,7 +10,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
-[![Tests](https://img.shields.io/badge/tests-152%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-165%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -23,7 +23,7 @@ Simulate external API failures, test retry behaviour, and verify that your appli
 ---
 
 > [!NOTE]
-> **Phase 2 Complete (`v0.2.0-alpha.1`):** RetryLab now provides in-process fault injection and idempotency auditing across **Python, Go, and TypeScript**. Unified polyglot chaos matrix, webhook tampering, SSE stream disruption, and TCP socket cutoffs are fully tested with 152 automated tests. Phase 3 (Developer Experience & Ecosystem) begins on Day 15!
+> **Phase 3 in Progress (`v0.2.0-alpha.1`):** RetryLab now includes an **Interactive Terminal TUI Dashboard** (`retrylab dashboard`), **Multi-Dimensional Reliability Scorecards** (`retrylab scorecard`), and **Live Scenario Playback** (`retrylab play`) across **Python, Go, and TypeScript** with 165 automated tests!
 
 ---
 
@@ -110,6 +110,8 @@ Here is RetryLab running an automated recovery and idempotency audit on a simula
 | **Go SDK (`http.RoundTripper`)** | ✅ Ready | In-process Go transport interceptor, SHA-256 idempotency auditor & backoff timing verifier. |
 | **TypeScript / Node.js SDK (Fetch & Axios)** | ✅ Ready | In-process Fetch & Axios interceptor, SHA-256 idempotency auditor & backoff timing verifier. |
 | **Polyglot Chaos Matrix** | ✅ Ready | Cross-language scenario schema generator for Python, Go structs, and TypeScript interfaces. |
+| **Interactive TUI Dashboard** | ✅ Ready | Rich terminal reliability dashboard, letter grading (A+ to F), and live scenario monitor. |
+| **Live Scenario Playback** | ✅ Ready | Step-by-step interactive terminal execution with real-time backoff countdowns (`retrylab play`). |
 
 ---
 
@@ -327,6 +329,25 @@ const report = auditor.audit(customFetch.history);
 console.log(report.passed); // true
 ```
 
+### 10. Interactive Terminal TUI Dashboard & Scorecard
+
+Audit your application's third-party resilience interactively in the terminal:
+
+```bash
+# Launch full multi-service demo dashboard
+retrylab dashboard --demo
+
+# Generate automated letter grade scorecard (A+, A, B, C, F) for CI or terminal
+retrylab scorecard --demo
+
+# Output machine-readable JSON or GitHub Markdown report
+retrylab scorecard --demo --format json
+retrylab scorecard --demo --format markdown
+
+# Step-through interactive scenario playback with live terminal countdowns
+retrylab play scenarios/stripe_timeout.yaml --step
+```
+
 ---
 
 ## 📐 Design Principles
@@ -345,7 +366,7 @@ console.log(report.passed); // true
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
 | **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhooks, SSE stream disruption, TCP socket cutoffs, Go SDK, TypeScript SDK, Polyglot Matrix (`v0.2.0-alpha.1`) | **✅ COMPLETED (100%)** |
-| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks | ⚡ **Next Up (Day 15)** |
+| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks | ⚡ **In Progress (Day 15 Complete)** |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
 
 ---
