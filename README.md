@@ -9,7 +9,8 @@
 [![CI](https://github.com/VimalN2005/retrylab/actions/workflows/ci.yml/badge.svg)](https://github.com/VimalN2005/retrylab/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
-[![Tests](https://img.shields.io/badge/tests-134%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
+[![Tests](https://img.shields.io/badge/tests-136%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -107,6 +108,7 @@ Here is RetryLab running an automated recovery and idempotency audit on a simula
 | **SSE & LLM Streaming Disruption** | ✅ Ready | Mid-stream truncation, token dropouts, malformed JSON, stalls, and OpenAI/Anthropic presets. |
 | **Socket & TCP Layer Chaos** | ✅ Ready | TCP RST connection resets, silent blackhole drops, slow drip trickle, and premature EOF. |
 | **Go SDK (`http.RoundTripper`)** | ✅ Ready | In-process Go transport interceptor, SHA-256 idempotency auditor & backoff timing verifier. |
+| **TypeScript / Node.js SDK (Fetch & Axios)** | ✅ Ready | In-process Fetch & Axios interceptor, SHA-256 idempotency auditor & backoff timing verifier. |
 
 ---
 
@@ -295,6 +297,35 @@ func main() {
 }
 ```
 
+### 9. Cross-Language TypeScript & Node.js SDK (`Fetch` & `Axios`)
+
+In Node.js, Bun, Deno, or frontend Next.js applications, intercept Fetch and Axios calls in-process:
+
+```typescript
+import { createRetryLabFetch, IdempotencyAuditor } from '@retrylab/retrylab';
+
+// Intercept outbound calls to OpenAI: fail first 2 attempts with HTTP 429
+const customFetch = createRetryLabFetch({
+  urlPattern: 'api.openai.com',
+  fault: 'http_status',
+  failCount: 2,
+  statusCode: 429,
+  recoverStatus: 200,
+});
+
+// Use customFetch in your application or pass to @openai/openai SDK
+const res = await customFetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'key_ai_123' },
+  body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] }),
+});
+
+// Audit idempotency and payload preservation across retries
+const auditor = new IdempotencyAuditor('Idempotency-Key');
+const report = auditor.audit(customFetch.history);
+console.log(report.passed); // true
+```
+
 ---
 
 ## 📐 Design Principles
@@ -313,7 +344,7 @@ func main() {
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
 | **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhook failure emulation, async stream disruption, TCP socket cutoffs, dynamic chaos scheduling | ⚡ **In Progress (Days 8 – 11 Complete)** |
-| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Go SDK alpha, Node.js SDK alpha, enhanced PR scorecard generator | ⚡ **In Progress (Go SDK Alpha Released)** |
+| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Go SDK alpha, Node.js SDK alpha, enhanced PR scorecard generator | ⚡ **In Progress (Days 12 & 13: Go & TS Released)** |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
 
 ---

@@ -1,0 +1,39 @@
+name: TypeScript SDK CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sdk/ts/**'
+      - '.github/workflows/ts-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'sdk/ts/**'
+      - '.github/workflows/ts-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run TypeScript Tests
+        run: |
+          cd sdk/ts
+          node --test test/*.test.ts
+
+      - name: Run TypeScript Demo
+        run: |
+          cd sdk/ts
+          node examples/openai-agent-resilience.ts

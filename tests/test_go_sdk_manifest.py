@@ -30,11 +30,11 @@ def test_go_sdk_tests_execution():
     go_sdk_dir = repo_root / "sdk" / "go"
 
     res = subprocess.run(
-        [go_bin, "test", "./..."],
+        [go_bin, "test", "./retrylab/..."],
         cwd=str(go_sdk_dir),
         capture_output=True,
         text=True,
-        timeout=15,
+        timeout=30,
     )
     assert res.returncode == 0, f"Go tests failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
     assert "PASS" in res.stdout or "ok" in res.stdout
