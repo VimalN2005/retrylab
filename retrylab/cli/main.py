@@ -700,5 +700,47 @@ def play_command(
         raise typer.Exit(code=1)
 
 
+@app.command(name="studio")
+def studio_command(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host address to bind Chaos Studio server"),
+    port: int = typer.Option(8400, "--port", "-p", help="Port to listen on"),
+    open_browser: bool = typer.Option(True, "--open/--no-open", help="Automatically open browser on launch"),
+) -> None:
+    """Launch local Chaos Studio Web Playground (interactive visual scenario builder)."""
+    import webbrowser
+    from retrylab.studio import create_studio_server
+
+    studio_url = f"http://{host}:{port}"
+    typer.secho("\n🧪 RetryLab Chaos Studio Web Playground", fg=typer.colors.CYAN, bold=True)
+    typer.echo(f"  Local Web UI:  {studio_url}")
+    typer.echo(f"  REST API:      {studio_url}/api/presets")
+    typer.echo(f"  Health:        {studio_url}/api/health")
+    typer.echo("  Press Ctrl+C to stop server.\n")
+
+    if open_browser:
+        try:
+            webbrowser.open(studio_url)
+        except Exception:
+            pass
+
+    server = create_studio_server(host=host, port=port)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        typer.echo("\nShutting down Chaos Studio.")
+        server.shutdown()
+        server.server_close()
+
+
+@app.command(name="ui", hidden=True)
+def ui_alias(
+    host: str = typer.Option("127.0.0.1", "--host", "-h"),
+    port: int = typer.Option(8400, "--port", "-p"),
+    open_browser: bool = typer.Option(True, "--open/--no-open"),
+) -> None:
+    """Alias for 'retrylab studio'."""
+    studio_command(host=host, port=port, open_browser=open_browser)
+
+
 if __name__ == "__main__":
     app()
