@@ -61,6 +61,59 @@ class PolyglotChaosMatrix:
         return (len(violations) == 0, violations)
 
     @classmethod
+    def to_python_snippet(cls, scenario: PolyglotScenarioSchema) -> str:
+        """Exports the scenario as an idiomatic Python RetryLab FaultScenario."""
+        fault_name = "SERVER_ERROR_503"
+        if scenario.fault == "timeout":
+            fault_name = "TIMEOUT"
+        elif scenario.fault in ("disconnect", "network_error"):
+            fault_name = "CONNECTION_RESET"
+        elif scenario.fault == "http_status":
+            if scenario.status_code == 429:
+                fault_name = "RATE_LIMIT_429"
+            elif scenario.status_code == 500:
+                fault_name = "SERVER_ERROR_500"
+            else:
+                fault_name = "SERVER_ERROR_503"
+
+        delay_sec = round(scenario.delay_ms / 1000.0, 3)
+        method_arg = f'\n    method="{scenario.method}",' if scenario.method != "ALL" else ""
+
+        return (
+            f"from retrylab import FaultScenario, FaultType, RetryLabTransport\n"
+            f"import httpx\n\n"
+            f"scenario = FaultScenario(\n"
+            f'    name="{scenario.name}",\n'
+            f'    target="{scenario.url_pattern}",{method_arg}\n'
+            f"    fault=FaultType.{fault_name},\n"
+            f"    fail_count={scenario.fail_count},\n"
+            f"    delay_seconds={delay_sec},\n"
+            f")\n\n"
+            f"transport = RetryLabTransport(scenario=scenario)\n"
+            f"with httpx.Client(transport=transport) as client:\n"
+            f'    # RetryLab intercepts and simulates the {scenario.fail_count} injected fault(s)\n'
+            f'    response = client.request("{scenario.method if scenario.method != "ALL" else "GET"}", "{scenario.url_pattern.replace("*", "test")}")\n'
+        )
+
+    @classmethod
+    def to_yaml_snippet(cls, scenario: PolyglotScenarioSchema) -> str:
+        """Exports the scenario as a standard RetryLab YAML definition."""
+        lines = [
+            "version: 1",
+            f"name: {scenario.name}",
+            f'target: "{scenario.url_pattern}"',
+        ]
+        if scenario.method != "ALL":
+            lines.append(f"method: {scenario.method}")
+        lines.append(f"fault: {scenario.fault}")
+        lines.append(f"fail_count: {scenario.fail_count}")
+        if scenario.delay_ms > 0:
+            lines.append(f"delay: {scenario.delay_ms / 1000.0:.2f}s")
+        if scenario.status_code != 503 and scenario.fault == "http_status":
+            lines.append(f"status_code: {scenario.status_code}")
+        return "\n".join(lines) + "\n"
+
+    @classmethod
     def to_go_snippet(cls, scenario: PolyglotScenarioSchema) -> str:
         """Exports the scenario as an idiomatic Go struct instantiation."""
         fault_map = {

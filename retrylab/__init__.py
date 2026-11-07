@@ -73,6 +73,15 @@ from retrylab.tui import (
     display_dashboard,
     render_dashboard_layout,
 )
+from retrylab.studio import (
+    ChaosStudioHandler,
+    ChaosStudioPreset,
+    ChaosStudioServer,
+    create_studio_server,
+    get_all_presets,
+    get_preset_by_id,
+    start_background_studio,
+)
 from retrylab.scenarios import (
     ScenarioStep,
     SequentialScenario,
@@ -173,6 +182,14 @@ __all__ = [
     "ScorecardGrade",
     "display_dashboard",
     "render_dashboard_layout",
+    # Chaos Studio
+    "ChaosStudioPreset",
+    "get_all_presets",
+    "get_preset_by_id",
+    "ChaosStudioHandler",
+    "ChaosStudioServer",
+    "create_studio_server",
+    "start_background_studio",
     # Recorder & Replay
     "RecordedInteraction",
     "TrafficRecorder",
