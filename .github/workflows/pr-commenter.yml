@@ -1,0 +1,55 @@
+name: RetryLab PR Resilience Commenter
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  resilience-audit:
+    name: API Reliability & Chaos Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install RetryLab
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Generate Resilience Scorecard & PR Review
+        run: |
+          mkdir -p .github/assets
+          retrylab pr-comment \
+            --demo \
+            --svg-out .github/assets/resilience_scorecard.svg \
+            --comment-out pr_comment.md \
+            --commit-sha ${{ github.event.pull_request.head.sha }} \
+            --fail-under 80.0
+
+      - name: Post or Update PR Sticky Comment
+        uses: peter-evans/create-or-update-comment@v4
+        if: always() && github.event.pull_request.number
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: 'pr_comment.md'
+          edit-mode: replace
+
+      - name: Upload SVG Scorecard Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: retrylab-resilience-scorecard
+          path: .github/assets/resilience_scorecard.svg
+          retention-days: 14

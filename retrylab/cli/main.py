@@ -17,7 +17,11 @@ from retrylab.drift import SchemaDriftDetector
 from retrylab.exceptions import ScenarioValidationError
 from retrylab.models import FaultScenario
 from retrylab.proxy import create_proxy_server
-from retrylab.reporting import generate_reliability_report
+from retrylab.reporting import (
+    generate_pr_comment,
+    generate_reliability_report,
+    generate_scorecard_svg,
+)
 from retrylab.scenarios import SequentialScenario, load_scenario_from_yaml, load_scenarios_from_dir
 from retrylab.webhooks import (
     ChaosWebhookConfig,
@@ -740,6 +744,79 @@ def ui_alias(
 ) -> None:
     """Alias for 'retrylab studio'."""
     studio_command(host=host, port=port, open_browser=open_browser)
+
+
+@app.command(name="pr-comment")
+def pr_comment_command(
+    scenario: Optional[Path] = typer.Option(None, "--scenario", "-s", help="Path to scenario YAML file to audit"),
+    dir: Optional[Path] = typer.Option(None, "--dir", "-d", help="Path to directory containing scenario YAML files"),
+    demo: bool = typer.Option(False, "--demo", help="Use multi-service demo scenario battery"),
+    svg_out: Optional[Path] = typer.Option(None, "--svg-out", help="Path to write generated SVG scorecard file"),
+    comment_out: Optional[Path] = typer.Option(None, "--comment-out", help="Path to write GitHub PR comment markdown"),
+    commit_sha: Optional[str] = typer.Option(None, "--commit-sha", help="Git commit SHA to reference in audit report"),
+    svg_link: Optional[str] = typer.Option(None, "--svg-link", help="Relative or hosted image link for embedded SVG"),
+    fail_under: float = typer.Option(70.0, "--fail-under", help="Minimum required score (0-100) before exiting with code 1"),
+) -> None:
+    """Generate automated GitHub PR markdown review comment with embedded SVG scorecard."""
+    if demo or (scenario is None and dir is None):
+        scorecard = ScorecardEvaluator.generate_demo_scorecard()
+    else:
+        scenarios = []
+        if scenario is not None:
+            try:
+                scenarios.append(load_scenario_from_yaml(scenario))
+            except ScenarioValidationError as err:
+                typer.secho(f"[FAIL] Could not load scenario '{scenario}': {err}", fg=typer.colors.RED)
+                raise typer.Exit(code=1)
+        elif dir is not None:
+            try:
+                sc_dict = load_scenarios_from_dir(dir)
+                scenarios.extend(sc_dict.values())
+            except ScenarioValidationError as err:
+                typer.secho(f"[FAIL] Could not load scenarios from '{dir}': {err}", fg=typer.colors.RED)
+                raise typer.Exit(code=1)
+
+        reports = _run_scenarios_and_audit(scenarios)
+        scorecard = ScorecardEvaluator.evaluate_reports(reports)
+
+    # 1. Generate SVG Scorecard
+    svg_content = generate_scorecard_svg(scorecard)
+    if svg_out:
+        svg_out.parent.mkdir(parents=True, exist_ok=True)
+        svg_out.write_text(svg_content, encoding="utf-8")
+        typer.secho(f"🎨 Saved SVG scorecard to '{svg_out}'", fg=typer.colors.CYAN)
+
+    # 2. Generate Markdown PR comment
+    md_content = generate_pr_comment(
+        scorecard=scorecard,
+        svg_relative_path=svg_link or (str(svg_out) if svg_out else None),
+        commit_sha=commit_sha,
+    )
+    if comment_out:
+        comment_out.parent.mkdir(parents=True, exist_ok=True)
+        comment_out.write_text(md_content, encoding="utf-8")
+        typer.secho(f"📝 Saved PR comment markdown to '{comment_out}'", fg=typer.colors.BLUE)
+    else:
+        try:
+            typer.echo(md_content)
+        except UnicodeEncodeError:
+            safe_text = md_content.encode(sys.stdout.encoding or "ascii", errors="replace").decode(sys.stdout.encoding or "ascii")
+            typer.echo(safe_text)
+
+    # 3. Check threshold
+    if scorecard.overall_score < fail_under:
+        typer.secho(
+            f"\n[FAIL] Scorecard failed threshold: {scorecard.overall_score:.1f} < {fail_under:.1f} (Grade: {scorecard.letter_grade.value})",
+            fg=typer.colors.RED,
+            bold=True,
+        )
+        raise typer.Exit(code=1)
+    else:
+        typer.secho(
+            f"\n[PASS] Resilience Gate Passed: Grade {scorecard.letter_grade.value} ({scorecard.overall_score:.1f}/100)",
+            fg=typer.colors.GREEN,
+            bold=True,
+        )
 
 
 if __name__ == "__main__":
