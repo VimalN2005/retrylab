@@ -10,7 +10,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
-[![Tests](https://img.shields.io/badge/tests-180%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-191%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -23,7 +23,7 @@ Simulate external API failures, test retry behaviour, and verify that your appli
 ---
 
 > [!NOTE]
-> **Phase 3 in Progress (`v0.2.0-alpha.1`):** RetryLab now includes **Automated GitHub Actions PR Commenter** (`retrylab pr-comment`), **SVG Visual Scorecards**, **Chaos Studio Web Playground** (`retrylab studio`), and **Terminal TUI Dashboards** across **Python, Go, and TypeScript** with 180 automated tests!
+> **Phase 3 in Progress (`v0.2.0-alpha.1`):** RetryLab now includes **Network-Layer Chaos (DNS & SSL/TLS Simulation)**, **Automated GitHub Actions PR Commenter** (`retrylab pr-comment`), **SVG Visual Scorecards**, **Chaos Studio Web Playground** (`retrylab studio`), and **Terminal TUI Dashboards** across **Python, Go, and TypeScript** with 191 automated tests!
 
 ---
 
@@ -386,6 +386,47 @@ Included in GitHub PR comments:
 - **Service-by-Service Breakdown:** Request counts, injected faults, clean recovery verification, and SHA-256 idempotency protection status.
 - **Actionable Recommendations:** Specific code and configuration guidance to prevent upstream stampedes or double charges.
 
+### 13. Network-Layer Chaos Simulation (DNS & SSL/TLS)
+
+Simulate hard-to-reproduce lower-level network anomalies like DNS resolution dropouts, DNS timeouts, and SSL/TLS certificate verification failures:
+
+```bash
+# Simulate DNS failure and test client recovery via CLI
+retrylab network simulate --fault dns_failure --url https://api.stripe.com/v1/charges
+
+# Simulate SSL certificate verification failure
+retrylab network simulate --fault ssl_cert_verification_failed
+
+# Simulate TLS negotiation / handshake timeout
+retrylab network simulate --fault tls_handshake_timeout
+```
+
+Or inject directly into Python client transports:
+
+```python
+import httpx
+from retrylab import FaultScenario, FaultType, RetryLabTransport
+
+scenario = FaultScenario(
+    target="https://api.stripe.com/*",
+    fault=FaultType.DNS_FAILURE,
+    fail_count=1,
+)
+
+transport = RetryLabTransport(scenario=scenario)
+client = httpx.Client(transport=transport)
+
+# Attempt 1: Raises httpx.ConnectError wrapping socket.gaierror
+# Attempt 2: Recovers smoothly with HTTP 200 OK
+```
+
+Supported network fault models:
+- `FaultType.DNS_FAILURE`: Simulates `getaddrinfo` resolution failure (`[Errno 11001] getaddrinfo failed`).
+- `FaultType.DNS_TIMEOUT`: Simulates DNS resolver timeout (`socket.timeout: DNS resolution query timed out`).
+- `FaultType.TLS_HANDSHAKE_TIMEOUT`: Simulates TLS negotiation timeout (`ssl.SSLError: TLS handshake negotiation timed out`).
+- `FaultType.SSL_CERT_VERIFICATION_FAILED`: Simulates invalid or untrusted certificate chain (`ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED]`).
+- `FaultType.SSL_HOSTNAME_MISMATCH`: Simulates hostname mismatch error (`ssl.CertificateError: hostname 'api.stripe.com' doesn't match 'wildcard.example.internal'`).
+
 ---
 
 ## 📐 Design Principles
@@ -404,7 +445,7 @@ Included in GitHub PR comments:
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
 | **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhooks, SSE stream disruption, TCP socket cutoffs, Go SDK, TypeScript SDK, Polyglot Matrix (`v0.2.0-alpha.1`) | **✅ COMPLETED (100%)** |
-| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks | ⚡ **In Progress (Days 15 – 17 Complete)** |
+| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks | ⚡ **In Progress (Days 15 – 18 Complete)** |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
 
 ---
