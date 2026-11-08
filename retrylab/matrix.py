@@ -32,7 +32,17 @@ class PolyglotChaosMatrix:
     Validates cross-SDK compatibility and exports native code snippets for Go and TypeScript.
     """
 
-    SUPPORTED_FAULTS = {"http_status", "timeout", "network_error", "disconnect"}
+    SUPPORTED_FAULTS = {
+        "http_status",
+        "timeout",
+        "network_error",
+        "disconnect",
+        "dns_failure",
+        "dns_timeout",
+        "tls_handshake_timeout",
+        "ssl_cert_verification_failed",
+        "ssl_hostname_mismatch",
+    }
     SUPPORTED_METHODS = {"ALL", "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}
 
     @classmethod
@@ -68,6 +78,16 @@ class PolyglotChaosMatrix:
             fault_name = "TIMEOUT"
         elif scenario.fault in ("disconnect", "network_error"):
             fault_name = "CONNECTION_RESET"
+        elif scenario.fault == "dns_failure":
+            fault_name = "DNS_FAILURE"
+        elif scenario.fault == "dns_timeout":
+            fault_name = "DNS_TIMEOUT"
+        elif scenario.fault == "tls_handshake_timeout":
+            fault_name = "TLS_HANDSHAKE_TIMEOUT"
+        elif scenario.fault == "ssl_cert_verification_failed":
+            fault_name = "SSL_CERT_VERIFICATION_FAILED"
+        elif scenario.fault == "ssl_hostname_mismatch":
+            fault_name = "SSL_HOSTNAME_MISMATCH"
         elif scenario.fault == "http_status":
             if scenario.status_code == 429:
                 fault_name = "RATE_LIMIT_429"
@@ -121,6 +141,11 @@ class PolyglotChaosMatrix:
             "timeout": "retrylab.FaultTimeout",
             "network_error": "retrylab.FaultDisconnect",
             "disconnect": "retrylab.FaultDisconnect",
+            "dns_failure": "retrylab.FaultDisconnect",
+            "dns_timeout": "retrylab.FaultTimeout",
+            "tls_handshake_timeout": "retrylab.FaultTimeout",
+            "ssl_cert_verification_failed": "retrylab.FaultDisconnect",
+            "ssl_hostname_mismatch": "retrylab.FaultDisconnect",
         }
         go_fault = fault_map.get(scenario.fault, "retrylab.FaultHTTPStatus")
         method = "" if scenario.method == "ALL" else scenario.method
@@ -145,7 +170,15 @@ class PolyglotChaosMatrix:
     @classmethod
     def to_ts_snippet(cls, scenario: PolyglotScenarioSchema) -> str:
         """Exports the scenario as an idiomatic TypeScript object definition."""
-        ts_fault = "network_error" if scenario.fault == "disconnect" else scenario.fault
+        ts_fault_map = {
+            "disconnect": "network_error",
+            "dns_failure": "dns_failure",
+            "dns_timeout": "timeout",
+            "tls_handshake_timeout": "timeout",
+            "ssl_cert_verification_failed": "ssl_error",
+            "ssl_hostname_mismatch": "ssl_error",
+        }
+        ts_fault = ts_fault_map.get(scenario.fault, scenario.fault)
         method_str = f'"{scenario.method}"' if scenario.method != "ALL" else "undefined"
 
         return (

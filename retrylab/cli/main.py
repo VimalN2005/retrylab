@@ -15,7 +15,8 @@ import typer
 from retrylab import __version__
 from retrylab.drift import SchemaDriftDetector
 from retrylab.exceptions import ScenarioValidationError
-from retrylab.models import FaultScenario
+from retrylab.models import FaultScenario, FaultType
+from retrylab.transport import RetryLabTransport
 from retrylab.proxy import create_proxy_server
 from retrylab.reporting import (
     generate_pr_comment,
@@ -817,6 +818,77 @@ def pr_comment_command(
             fg=typer.colors.GREEN,
             bold=True,
         )
+
+
+network_app = typer.Typer(
+    name="network",
+    help="Network-level DNS resolution and SSL/TLS certificate chaos simulation.",
+    no_args_is_help=True,
+)
+app.add_typer(network_app, name="network")
+
+
+@network_app.command(name="simulate")
+def network_simulate(
+    fault: str = typer.Option("dns_failure", "--fault", "-f", help="Fault: dns_failure, dns_timeout, tls_handshake_timeout, ssl_cert_verification_failed, ssl_hostname_mismatch"),
+    url: str = typer.Option("https://api.stripe.com/v1/charges", "--url", "-u", help="Simulated target endpoint URL"),
+    recover: bool = typer.Option(True, "--recover/--no-recover", help="Execute subsequent request verifying recovery"),
+) -> None:
+    """Simulate DNS lookup failures or SSL/TLS certificate anomalies and test client handling."""
+    try:
+        fault_type = FaultType(fault)
+    except ValueError:
+        typer.secho(
+            f"[FAIL] Invalid network fault '{fault}'. Choose from: dns_failure, dns_timeout, tls_handshake_timeout, ssl_cert_verification_failed, ssl_hostname_mismatch",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
+    typer.secho(f"\n🌐 Simulating Network Fault: {fault_type.value.upper()}", fg=typer.colors.CYAN, bold=True)
+    typer.echo(f"  Target URL: {url}\n")
+
+    scenario = FaultScenario(
+        name=f"cli_network_{fault_type.value}",
+        target=url,
+        fault=fault_type,
+        fail_count=1,
+    )
+
+    transport = RetryLabTransport(scenario=scenario)
+    client = httpx.Client(transport=transport)
+
+    try:
+        t0 = time.perf_counter()
+        resp = client.get(url)
+        elapsed = (time.perf_counter() - t0) * 1000.0
+        typer.secho(f"✅ Unexpected Normal Response: HTTP {resp.status_code} ({elapsed:.1f}ms)", fg=typer.colors.GREEN)
+    except httpx.ConnectTimeout as exc:
+        typer.secho(f"⏱️ Client Exception: httpx.ConnectTimeout: {exc}", fg=typer.colors.RED, bold=True)
+        if "DNS" in str(exc):
+            typer.echo("💡 Recommendation: Configure DNS lookup timeouts and maintain local DNS resolver cache.")
+        else:
+            typer.echo("💡 Recommendation: Tune TLS negotiation timeout (< 3s) and verify intermediate CA connectivity.")
+    except httpx.ConnectError as exc:
+        typer.secho(f"💥 Client Exception: httpx.ConnectError: {exc}", fg=typer.colors.RED, bold=True)
+        if "DNS" in str(exc) or (exc.__cause__ and "gaierror" in type(exc.__cause__).__name__):
+            typer.echo("💡 Recommendation: Catch socket.gaierror / DNS resolution failures with exponential backoff.")
+        elif "SSL" in str(exc) or "CERTIFICATE" in str(exc):
+            typer.echo("💡 Recommendation: Monitor certificate expiry via automated cert-manager and fail fast without blind retry.")
+        else:
+            typer.echo("💡 Recommendation: Implement connection pool recreation upon socket disconnection.")
+    except Exception as exc:
+        typer.secho(f"💥 Caught Exception: {type(exc).__name__}: {exc}", fg=typer.colors.RED)
+
+    if recover:
+        typer.echo("\n--- Attempt #2: Verifying Application Recovery ---")
+        try:
+            t0 = time.perf_counter()
+            resp2 = client.get(url)
+            elapsed2 = (time.perf_counter() - t0) * 1000.0
+            typer.secho(f"✅ Recovered Cleanly: HTTP {resp2.status_code} ({elapsed2:.1f}ms)", fg=typer.colors.GREEN, bold=True)
+        except Exception as exc:
+            typer.secho(f"❌ Application Failed to Recover: {exc}", fg=typer.colors.RED, bold=True)
+            raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
