@@ -61,7 +61,9 @@ from retrylab.recorder import (
 )
 from retrylab.reporting import (
     ReliabilityReport,
+    generate_pr_comment,
     generate_reliability_report,
+    generate_scorecard_svg,
 )
 from retrylab.tui import (
     EndpointResilienceEntry,
@@ -173,6 +175,8 @@ __all__ = [
     # Reporting
     "ReliabilityReport",
     "generate_reliability_report",
+    "generate_scorecard_svg",
+    "generate_pr_comment",
     # TUI & Scorecard
     "EndpointResilienceEntry",
     "InteractiveScenarioRunner",
