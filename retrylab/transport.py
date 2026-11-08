@@ -64,6 +64,67 @@ def _build_synthetic_response(
     )
 
 
+def _inject_transport_fault(scenario: FaultScenario, request: httpx.Request, url_str: str) -> None:
+    """Raise simulated network, timeout, DNS, or TLS faults."""
+    fault = scenario.fault
+    if fault == FaultType.TIMEOUT:
+        raise httpx.ReadTimeout(
+            f"Simulated ReadTimeout for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.CONNECTION_RESET:
+        raise httpx.ConnectError(
+            f"Simulated Connection Reset for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.DNS_FAILURE:
+        import socket
+        exc = httpx.ConnectError(
+            f"Simulated DNS resolution failure (NXDOMAIN) for {url_str} by RetryLab",
+            request=request,
+        )
+        exc.__cause__ = socket.gaierror(-2, "Name or service not known")
+        raise exc
+
+    if fault == FaultType.DNS_TIMEOUT:
+        raise httpx.ConnectTimeout(
+            f"Simulated DNS resolution timeout for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.TLS_HANDSHAKE_TIMEOUT:
+        raise httpx.ConnectTimeout(
+            f"Simulated TLS handshake timeout during SSL negotiation for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.SSL_CERT_VERIFICATION_FAILED:
+        import ssl
+        exc = httpx.ConnectError(
+            f"[SSL: CERTIFICATE_VERIFY_FAILED] Certificate verify failed for {url_str} by RetryLab",
+            request=request,
+        )
+        try:
+            exc.__cause__ = ssl.SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired")
+        except Exception:
+            exc.__cause__ = ssl.SSLError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+        raise exc
+
+    if fault == FaultType.SSL_HOSTNAME_MISMATCH:
+        import ssl
+        exc = httpx.ConnectError(
+            f"[SSL: CERTIFICATE_VERIFY_FAILED] Certificate hostname mismatch for {url_str} by RetryLab",
+            request=request,
+        )
+        try:
+            exc.__cause__ = ssl.CertificateError(f"hostname '{request.url.host}' doesn't match certificate")
+        except Exception:
+            exc.__cause__ = ssl.SSLError("hostname mismatch")
+        raise exc
+
+
 class RetryLabTransport(httpx.BaseTransport):
     """
     Synchronous HTTPX transport interceptor.
@@ -101,18 +162,7 @@ class RetryLabTransport(httpx.BaseTransport):
             if delay > 0:
                 time.sleep(delay)
 
-            if self.scenario.fault == FaultType.TIMEOUT:
-                raise httpx.ReadTimeout(
-                    f"Simulated ReadTimeout for {url_str} by RetryLab",
-                    request=request,
-                )
-
-            if self.scenario.fault == FaultType.CONNECTION_RESET:
-                raise httpx.ConnectError(
-                    f"Simulated Connection Reset for {url_str} by RetryLab",
-                    request=request,
-                )
-
+            _inject_transport_fault(self.scenario, request, url_str)
             return _build_synthetic_response(request, self.scenario)
 
         # Passthrough or recovered request
@@ -181,18 +231,7 @@ class AsyncRetryLabTransport(httpx.AsyncBaseTransport):
             if delay > 0:
                 await asyncio.sleep(delay)
 
-            if self.scenario.fault == FaultType.TIMEOUT:
-                raise httpx.ReadTimeout(
-                    f"Simulated ReadTimeout for {url_str} by RetryLab",
-                    request=request,
-                )
-
-            if self.scenario.fault == FaultType.CONNECTION_RESET:
-                raise httpx.ConnectError(
-                    f"Simulated Connection Reset for {url_str} by RetryLab",
-                    request=request,
-                )
-
+            _inject_transport_fault(self.scenario, request, url_str)
             return _build_synthetic_response(request, self.scenario)
 
         if self.passthrough_transport is not None:

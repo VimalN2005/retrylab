@@ -24,6 +24,9 @@ from retrylab.exceptions import (
     RetryLabError,
     ScenarioValidationError,
     SimulatedConnectionError,
+    SimulatedDNSError,
+    SimulatedSSLError,
+    SimulatedTLSHandshakeTimeout,
     SimulatedTimeoutError,
 )
 from retrylab.idempotency import (
@@ -246,6 +249,9 @@ __all__ = [
     "FaultInjectionError",
     "SimulatedTimeoutError",
     "SimulatedConnectionError",
+    "SimulatedDNSError",
+    "SimulatedSSLError",
+    "SimulatedTLSHandshakeTimeout",
     "RecoveryAssertionError",
     "IdempotencyViolationError",
 ]

@@ -67,6 +67,67 @@ def _build_synthetic_requests_response(
     return response
 
 
+def _inject_requests_fault(scenario: FaultScenario, request: requests.PreparedRequest, url_str: str) -> None:
+    """Raise simulated network, timeout, DNS, or TLS faults for Requests."""
+    fault = scenario.fault
+    if fault == FaultType.TIMEOUT:
+        raise requests.exceptions.ReadTimeout(
+            f"Simulated ReadTimeout for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.CONNECTION_RESET:
+        raise requests.exceptions.ConnectionError(
+            f"Simulated Connection Error for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.DNS_FAILURE:
+        import socket
+        exc = requests.exceptions.ConnectionError(
+            f"Simulated DNS resolution failure (NXDOMAIN) for {url_str} by RetryLab",
+            request=request,
+        )
+        exc.__cause__ = socket.gaierror(-2, "Name or service not known")
+        raise exc
+
+    if fault == FaultType.DNS_TIMEOUT:
+        raise requests.exceptions.ConnectTimeout(
+            f"Simulated DNS resolution timeout for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.TLS_HANDSHAKE_TIMEOUT:
+        raise requests.exceptions.ConnectTimeout(
+            f"Simulated TLS handshake timeout for {url_str} by RetryLab",
+            request=request,
+        )
+
+    if fault == FaultType.SSL_CERT_VERIFICATION_FAILED:
+        import ssl
+        exc = requests.exceptions.SSLError(
+            f"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed for {url_str} by RetryLab",
+            request=request,
+        )
+        try:
+            exc.__cause__ = ssl.SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired")
+        except Exception:
+            exc.__cause__ = ssl.SSLError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+        raise exc
+
+    if fault == FaultType.SSL_HOSTNAME_MISMATCH:
+        import ssl
+        exc = requests.exceptions.SSLError(
+            f"[SSL: CERTIFICATE_VERIFY_FAILED] Hostname mismatch for {url_str} by RetryLab",
+            request=request,
+        )
+        try:
+            exc.__cause__ = ssl.CertificateError("hostname mismatch")
+        except Exception:
+            exc.__cause__ = ssl.SSLError("hostname mismatch")
+        raise exc
+
+
 class RetryLabAdapter(BaseAdapter):
     """
     Requests Adapter that intercepts outgoing requests from requests.Session.
@@ -117,18 +178,7 @@ class RetryLabAdapter(BaseAdapter):
             if delay > 0:
                 time.sleep(delay)
 
-            if self.scenario.fault == FaultType.TIMEOUT:
-                raise requests.exceptions.ReadTimeout(
-                    f"Simulated ReadTimeout for {url_str} by RetryLab",
-                    request=request,
-                )
-
-            if self.scenario.fault == FaultType.CONNECTION_RESET:
-                raise requests.exceptions.ConnectionError(
-                    f"Simulated Connection Error for {url_str} by RetryLab",
-                    request=request,
-                )
-
+            _inject_requests_fault(self.scenario, request, url_str)
             return _build_synthetic_requests_response(request, self.scenario)
 
         # Non-faulting request (recovered or unmatched)

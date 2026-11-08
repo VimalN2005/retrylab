@@ -24,6 +24,11 @@ class FaultType(str, Enum):
     GATEWAY_TIMEOUT_504 = "gateway_timeout_504"
     CONNECTION_RESET = "connection_reset"
     LATENCY = "latency"
+    DNS_FAILURE = "dns_failure"
+    DNS_TIMEOUT = "dns_timeout"
+    TLS_HANDSHAKE_TIMEOUT = "tls_handshake_timeout"
+    SSL_CERT_VERIFICATION_FAILED = "ssl_cert_verification_failed"
+    SSL_HOSTNAME_MISMATCH = "ssl_hostname_mismatch"
 
 
 class RecordedRequest(BaseModel):

@@ -23,6 +23,18 @@ class SimulatedConnectionError(FaultInjectionError):
     """Simulated connection failure or socket reset."""
 
 
+class SimulatedDNSError(SimulatedConnectionError):
+    """Simulated DNS lookup, NXDOMAIN, or name resolution error."""
+
+
+class SimulatedSSLError(SimulatedConnectionError):
+    """Simulated TLS certificate validation or handshake failure."""
+
+
+class SimulatedTLSHandshakeTimeout(SimulatedTimeoutError):
+    """Simulated TLS handshake negotiation stall or timeout."""
+
+
 class RecoveryAssertionError(RetryLabError):
     """Raised when an application fails to recover as expected."""
 
