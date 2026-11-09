@@ -114,7 +114,10 @@ func main() {
 		Benchmarks: make(map[string]Metric),
 	}
 
-	batchSize := 10
+	batchSize := 50
+	if iterations < 100 {
+		batchSize = 10
+	}
 	batches := iterations / batchSize
 	if batches < 1 {
 		batches = 1

@@ -10,6 +10,13 @@ from retrylab.assertions import (
     BackoffViolation,
     BackoffViolationType,
 )
+from retrylab.benchmark import (
+    BenchmarkReport,
+    LatencyMetrics,
+    PythonBenchmarkRunner,
+    render_benchmark_table,
+    run_polyglot_benchmark,
+)
 from retrylab.context import simulate_fault
 from retrylab.drift import (
     DriftType,
@@ -238,6 +245,12 @@ __all__ = [
     "SocketFaultType",
     "SocketChaosTransport",
     "SocketChaosAdapter",
+    # Benchmarking
+    "BenchmarkReport",
+    "LatencyMetrics",
+    "PythonBenchmarkRunner",
+    "render_benchmark_table",
+    "run_polyglot_benchmark",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
