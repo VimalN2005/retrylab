@@ -1,0 +1,201 @@
+{
+  "title": "RetryLab Polyglot SDK Latency & Overhead Benchmark",
+  "timestamp": 1794231057.703251,
+  "iterations": 1000,
+  "results": {
+    "python": {
+      "language": "python",
+      "timestamp": 1794231057.7032573,
+      "iterations": 1000,
+      "benchmarks": {
+        "baseline_transport": {
+          "iterations": 1000,
+          "mean_us": 31.9,
+          "p50_us": 29.4,
+          "p90_us": 33.21,
+          "p95_us": 36.3,
+          "p99_us": 76.18,
+          "min_us": 26.6,
+          "max_us": 748.8,
+          "throughput_rps": 31343.5,
+          "overhead_us": 0.0,
+          "memory_peak_kb": 35.28
+        },
+        "retrylab_passthrough": {
+          "iterations": 1000,
+          "mean_us": 74.24,
+          "p50_us": 63.6,
+          "p90_us": 84.51,
+          "p95_us": 119.31,
+          "p99_us": 210.61,
+          "min_us": 54.2,
+          "max_us": 2354.1,
+          "throughput_rps": 13470.6,
+          "overhead_us": 42.34,
+          "memory_peak_kb": 1481.72
+        },
+        "retrylab_fault_injection": {
+          "iterations": 1000,
+          "mean_us": 108.59,
+          "p50_us": 96.0,
+          "p90_us": 133.52,
+          "p95_us": 177.0,
+          "p99_us": 298.75,
+          "min_us": 84.2,
+          "max_us": 1098.7,
+          "throughput_rps": 9209.2,
+          "overhead_us": 76.69,
+          "memory_peak_kb": 1540.12
+        },
+        "idempotency_auditor": {
+          "iterations": 1000,
+          "mean_us": 91.97,
+          "p50_us": 81.9,
+          "p90_us": 105.15,
+          "p95_us": 139.55,
+          "p99_us": 290.66,
+          "min_us": 73.7,
+          "max_us": 609.5,
+          "throughput_rps": 10873.7,
+          "overhead_us": 0.0,
+          "memory_peak_kb": 35.23
+        },
+        "schema_drift_detector": {
+          "iterations": 1000,
+          "mean_us": 11.65,
+          "p50_us": 10.4,
+          "p90_us": 11.8,
+          "p95_us": 12.3,
+          "p99_us": 28.44,
+          "min_us": 9.4,
+          "max_us": 278.6,
+          "throughput_rps": 85818.5,
+          "overhead_us": 0.0,
+          "memory_peak_kb": 31.29
+        }
+      }
+    },
+    "go": {
+      "language": "go",
+      "timestamp": 1794231062,
+      "iterations": 1000,
+      "benchmarks": {
+        "baseline_transport": {
+          "iterations": 20,
+          "mean_us": 0.59,
+          "p50_us": 0,
+          "p90_us": 0,
+          "p95_us": 0.59,
+          "p99_us": 9.56,
+          "min_us": 0,
+          "max_us": 11.81,
+          "throughput_rps": 1694053.9,
+          "overhead_us": 0
+        },
+        "idempotency_auditor": {
+          "iterations": 20,
+          "mean_us": 0.53,
+          "p50_us": 0,
+          "p90_us": 0,
+          "p95_us": 0.53,
+          "p99_us": 8.5,
+          "min_us": 0,
+          "max_us": 10.5,
+          "throughput_rps": 1904761.9,
+          "overhead_us": 0
+        },
+        "retrylab_fault_injection": {
+          "iterations": 20,
+          "mean_us": 0.54,
+          "p50_us": 0,
+          "p90_us": 0,
+          "p95_us": 0.54,
+          "p99_us": 8.71,
+          "min_us": 0,
+          "max_us": 10.75,
+          "throughput_rps": 1860811.3,
+          "overhead_us": 0
+        },
+        "retrylab_passthrough": {
+          "iterations": 20,
+          "mean_us": 0,
+          "p50_us": 0,
+          "p90_us": 0,
+          "p95_us": 0,
+          "p99_us": 0,
+          "min_us": 0,
+          "max_us": 0,
+          "throughput_rps": 0,
+          "overhead_us": 0
+        }
+      }
+    },
+    "typescript": {
+      "language": "typescript",
+      "timestamp": 1794231062,
+      "iterations": 1000,
+      "benchmarks": {
+        "baseline_transport": {
+          "iterations": 1000,
+          "mean_us": 9.23,
+          "p50_us": 5.75,
+          "p90_us": 9.3,
+          "p95_us": 14.3,
+          "p99_us": 60.48,
+          "min_us": 2.7,
+          "max_us": 752.3,
+          "throughput_rps": 108327.1,
+          "overhead_us": 0
+        },
+        "retrylab_passthrough": {
+          "iterations": 1000,
+          "mean_us": 3.63,
+          "p50_us": 3.1,
+          "p90_us": 3.3,
+          "p95_us": 3.5,
+          "p99_us": 14.01,
+          "min_us": 2.8,
+          "max_us": 148.5,
+          "throughput_rps": 275300.1,
+          "overhead_us": 0
+        },
+        "retrylab_fault_injection": {
+          "iterations": 1000,
+          "mean_us": 3.5,
+          "p50_us": 3,
+          "p90_us": 3.3,
+          "p95_us": 3.5,
+          "p99_us": 9.91,
+          "min_us": 2.8,
+          "max_us": 144.4,
+          "throughput_rps": 285885.8,
+          "overhead_us": 0
+        },
+        "idempotency_auditor": {
+          "iterations": 1000,
+          "mean_us": 3.86,
+          "p50_us": 2.5,
+          "p90_us": 5.6,
+          "p95_us": 7.2,
+          "p99_us": 20.6,
+          "min_us": 2.3,
+          "max_us": 209.4,
+          "throughput_rps": 258799.2,
+          "overhead_us": 0
+        },
+        "backoff_auditor": {
+          "iterations": 1000,
+          "mean_us": 0.32,
+          "p50_us": 0.3,
+          "p90_us": 0.3,
+          "p95_us": 0.4,
+          "p99_us": 0.6,
+          "min_us": 0.2,
+          "max_us": 12.5,
+          "throughput_rps": 3099814,
+          "overhead_us": 0
+        }
+      }
+    }
+  }
+}
