@@ -9,7 +9,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "node --test test/*.test.ts"
+    "test": "node --test test/*.test.ts",
+    "bench": "node benchmark/benchmark.ts"
   },
   "keywords": [
     "retry",
