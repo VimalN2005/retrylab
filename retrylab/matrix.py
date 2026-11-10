@@ -195,3 +195,76 @@ class PolyglotChaosMatrix:
             f"  recoverBody: {json.dumps(scenario.recover_body, indent=2)},\n"
             f"}};"
         )
+
+    @classmethod
+    def to_python_grpc_snippet(
+        cls,
+        method: str = "/payments.PaymentService/*",
+        status: str = "UNAVAILABLE",
+        fail_count: int = 1,
+    ) -> str:
+        """Exports an idiomatic Python gRPC client interceptor definition."""
+        return (
+            f"import grpc\n"
+            f"from retrylab.grpc import GRPCFaultConfig, GRPCStatusCode, RetryLabUnaryClientInterceptor\n\n"
+            f"config = GRPCFaultConfig(\n"
+            f'    method_pattern="{method}",\n'
+            f"    status_code=GRPCStatusCode.{status.upper()},\n"
+            f"    fail_count={fail_count},\n"
+            f")\n"
+            f"interceptor = RetryLabUnaryClientInterceptor(config=config)\n"
+            f'channel = grpc.intercept_channel(grpc.insecure_channel("localhost:50051"), interceptor)\n'
+        )
+
+    @classmethod
+    def to_go_grpc_snippet(
+        cls,
+        method: str = "/payments.PaymentService/*",
+        status: str = "UNAVAILABLE",
+        fail_count: int = 1,
+    ) -> str:
+        """Exports an idiomatic Go gRPC client interceptor definition."""
+        go_code_map = {
+            "UNAVAILABLE": "codes.Unavailable",
+            "DEADLINE_EXCEEDED": "codes.DeadlineExceeded",
+            "RESOURCE_EXHAUSTED": "codes.ResourceExhausted",
+            "INTERNAL": "codes.Internal",
+            "UNAUTHENTICATED": "codes.Unauthenticated",
+        }
+        code = go_code_map.get(status.upper(), f"codes.{status.title().replace('_', '')}")
+
+        return (
+            f"import (\n"
+            f'\t"google.golang.org/grpc"\n'
+            f'\t"google.golang.org/grpc/codes"\n'
+            f'\t"google.golang.org/grpc/status"\n'
+            f")\n\n"
+            f"// Attach RetryLab UnaryClientInterceptor to client connection\n"
+            f"interceptor := retrylab.UnaryClientInterceptor(retrylab.GRPCFaultConfig{{\n"
+            f'\tMethodPattern: "{method}",\n'
+            f"\tStatusCode:    {code},\n"
+            f"\tFailCount:     {fail_count},\n"
+            f"}})\n"
+            f'conn, err := grpc.Dial(target, grpc.WithUnaryInterceptor(interceptor), grpc.WithInsecure())\n'
+        )
+
+    @classmethod
+    def to_ts_grpc_snippet(
+        cls,
+        method: str = "/payments.PaymentService/*",
+        status: str = "UNAVAILABLE",
+        fail_count: int = 1,
+    ) -> str:
+        """Exports an idiomatic TypeScript @grpc/grpc-js client interceptor definition."""
+        return (
+            f"import * as grpc from '@grpc/grpc-js';\n"
+            f"import {{ createGRPCChaosInterceptor }} from '@retrylab/retrylab';\n\n"
+            f"const interceptor = createGRPCChaosInterceptor({{\n"
+            f'  methodPattern: "{method}",\n'
+            f"  statusCode: grpc.status.{status.upper()},\n"
+            f"  failCount: {fail_count},\n"
+            f"}});\n\n"
+            f"const client = new PaymentServiceClient('localhost:50051', grpc.credentials.createInsecure(), {{\n"
+            f"  interceptors: [interceptor],\n"
+            f"}});\n"
+        )

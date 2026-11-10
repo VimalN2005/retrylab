@@ -18,6 +18,13 @@ from retrylab.benchmark import (
     render_benchmark_table,
     run_polyglot_benchmark,
 )
+from retrylab.grpc import (
+    GRPCFaultConfig,
+    GRPCStatusCode,
+    RetryLabUnaryClientInterceptor,
+    SimulatedGRPCError,
+    get_grpc_recommendation,
+)
 from retrylab.drift import SchemaDriftDetector
 from retrylab.exceptions import ScenarioValidationError
 from retrylab.models import FaultScenario, FaultType
@@ -893,6 +900,85 @@ def network_simulate(
             typer.secho(f"✅ Recovered Cleanly: HTTP {resp2.status_code} ({elapsed2:.1f}ms)", fg=typer.colors.GREEN, bold=True)
         except Exception as exc:
             typer.secho(f"❌ Application Failed to Recover: {exc}", fg=typer.colors.RED, bold=True)
+            raise typer.Exit(code=1)
+
+
+grpc_app = typer.Typer(
+    help="gRPC & Protobuf canonical status code chaos simulation.",
+    no_args_is_help=True,
+)
+app.add_typer(grpc_app, name="grpc")
+
+
+@grpc_app.command(name="simulate")
+def grpc_simulate(
+    method: str = typer.Option("/payment.PaymentService/ProcessPayment", "--method", "-m", help="Target gRPC method"),
+    status: str = typer.Option("UNAVAILABLE", "--status", "-s", help="gRPC status code: UNAVAILABLE, DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED, INTERNAL, etc."),
+    details: str = typer.Option("Simulated downstream gRPC dependency outage", "--details", "-d", help="Error details message"),
+    delay_ms: float = typer.Option(0.0, "--delay-ms", help="Simulated RPC latency delay in milliseconds"),
+    fail_count: int = typer.Option(1, "--fail-count", "-c", help="Number of RPC failures before recovery"),
+    recover: bool = typer.Option(True, "--recover/--no-recover", help="Verify clean recovery on subsequent attempt"),
+) -> None:
+    """Simulate canonical gRPC status code faults (e.g. UNAVAILABLE, DEADLINE_EXCEEDED) and verify client recovery."""
+    try:
+        status_enum = GRPCStatusCode(status.upper())
+    except ValueError:
+        valid_codes = ", ".join([c.value for c in GRPCStatusCode])
+        typer.secho(
+            f"[FAIL] Invalid gRPC status code '{status}'. Choose from:\n{valid_codes}",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
+    typer.secho(f"\n[gRPC] Simulating Fault: {status_enum.value}", fg=typer.colors.CYAN, bold=True)
+    typer.echo(f"  Target RPC Method: {method}")
+    typer.echo(f"  Error Details:     {details}")
+    if delay_ms > 0:
+        typer.echo(f"  Injected Latency:  {delay_ms:.1f}ms")
+    typer.echo("")
+
+    config = GRPCFaultConfig(
+        method_pattern=method,
+        status_code=status_enum,
+        details=details,
+        fail_count=fail_count,
+        delay_ms=delay_ms,
+        recover_response=b'{"status": "succeeded", "message": "recovered_cleanly"}',
+    )
+    interceptor = RetryLabUnaryClientInterceptor(config=config)
+
+    class MockCallDetails:
+        pass
+
+    mock_details = MockCallDetails()
+    mock_details.method = method
+    mock_details.metadata = ()
+
+    # Attempt 1
+    try:
+        t0 = time.perf_counter()
+        interceptor.intercept_unary_unary(lambda d, req: b"base_success", mock_details, b'{"ping": true}')
+        elapsed = (time.perf_counter() - t0) * 1000.0
+        typer.secho(f"[OK] Unexpected Success: ({elapsed:.1f}ms)", fg=typer.colors.GREEN)
+    except SimulatedGRPCError as exc:
+        code_str = getattr(exc.code(), "name", str(exc.code()))
+        typer.secho(f"[RPC FAULT] Injected Exception: [{code_str}] {exc.details()}", fg=typer.colors.RED, bold=True)
+        rec = get_grpc_recommendation(status_enum)
+        typer.echo(f"Recommendation: {rec}")
+
+    if recover:
+        typer.echo("\n--- Attempt #2: Verifying Application Recovery ---")
+        try:
+            t0 = time.perf_counter()
+            resp2 = interceptor.intercept_unary_unary(lambda d, req: b"base_success", mock_details, b'{"ping": true}')
+            elapsed2 = (time.perf_counter() - t0) * 1000.0
+            typer.secho(f"[PASS] Recovered Cleanly: gRPC Status OK ({elapsed2:.1f}ms)", fg=typer.colors.GREEN, bold=True)
+            if hasattr(resp2, "result"):
+                typer.echo(f"  Payload: {resp2.result()!r}")
+            elif isinstance(resp2, bytes):
+                typer.echo(f"  Payload: {resp2!r}")
+        except Exception as exc:
+            typer.secho(f"[FAIL] Application Failed to Recover: {exc}", fg=typer.colors.RED, bold=True)
             raise typer.Exit(code=1)
 
 
