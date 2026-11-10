@@ -24,6 +24,16 @@ from retrylab.drift import (
     SchemaDriftDetector,
     SchemaDriftError,
 )
+from retrylab.grpc import (
+    GRPCFaultConfig,
+    GRPCRecordedCall,
+    GRPCStatusCode,
+    RetryLabUnaryClientInterceptor,
+    SimulatedGRPCError,
+    create_intercepted_channel,
+    get_grpc_recommendation,
+    to_grpc_status,
+)
 from retrylab.exceptions import (
     FaultInjectionError,
     IdempotencyViolationError,
@@ -251,6 +261,15 @@ __all__ = [
     "PythonBenchmarkRunner",
     "render_benchmark_table",
     "run_polyglot_benchmark",
+    # gRPC & Protobuf Chaos
+    "GRPCStatusCode",
+    "GRPCFaultConfig",
+    "GRPCRecordedCall",
+    "RetryLabUnaryClientInterceptor",
+    "SimulatedGRPCError",
+    "create_intercepted_channel",
+    "get_grpc_recommendation",
+    "to_grpc_status",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
