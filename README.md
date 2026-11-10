@@ -10,7 +10,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
-[![Tests](https://img.shields.io/badge/tests-199%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-211%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -23,7 +23,7 @@ Simulate external API failures, test retry behaviour, and verify that your appli
 ---
 
 > [!NOTE]
-> **Phase 3 in Progress (`v0.2.0-alpha.1`):** RetryLab now includes **Polyglot SDK Benchmarks** (`retrylab bench`), **Network-Layer Chaos (DNS & SSL/TLS Simulation)**, **Automated GitHub Actions PR Commenter** (`retrylab pr-comment`), **SVG Visual Scorecards**, **Chaos Studio Web Playground** (`retrylab studio`), and **Terminal TUI Dashboards** across **Python, Go, and TypeScript** with 199 automated tests!
+> **Phase 3 in Progress (`v0.2.0-alpha.1`):** RetryLab now includes **gRPC & Protobuf Chaos Simulation Alpha** (`retrylab grpc`), **Polyglot SDK Benchmarks** (`retrylab bench`), **Network-Layer Chaos (DNS & SSL/TLS Simulation)**, **Automated GitHub Actions PR Commenter** (`retrylab pr-comment`), **SVG Visual Scorecards**, **Chaos Studio Web Playground** (`retrylab studio`), and **Terminal TUI Dashboards** across **Python, Go, and TypeScript** with 211 automated tests!
 
 ---
 
@@ -444,6 +444,44 @@ retrylab bench --lang python
 retrylab bench --lang all --format json --json-out benchmarks/results.json
 ```
 
+### 15. gRPC & Protobuf Chaos Simulation (`retrylab grpc`)
+
+Simulate canonical gRPC status code failures (`UNAVAILABLE`, `DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `INTERNAL`) and test client stubs and retry policies:
+
+```bash
+# Simulate gRPC UNAVAILABLE error and verify application recovery
+retrylab grpc simulate --method /payment.PaymentService/ProcessPayment --status UNAVAILABLE
+
+# Simulate DEADLINE_EXCEEDED with injected latency
+retrylab grpc simulate --method /vector.VectorDB/Search --status DEADLINE_EXCEEDED --delay-ms 50
+
+# Simulate RESOURCE_EXHAUSTED (rate-limiting / quota drop)
+retrylab grpc simulate --status RESOURCE_EXHAUSTED
+```
+
+Or inject directly into Python `grpc.Channel` via `RetryLabUnaryClientInterceptor`:
+
+```python
+import grpc
+from retrylab.grpc import GRPCFaultConfig, GRPCStatusCode, RetryLabUnaryClientInterceptor
+
+config = GRPCFaultConfig(
+    method_pattern="/payments.PaymentService/*",
+    status_code=GRPCStatusCode.UNAVAILABLE,
+    details="Simulated downstream cluster outage",
+    fail_count=1,
+)
+
+interceptor = RetryLabUnaryClientInterceptor(config=config)
+channel = grpc.intercept_channel(grpc.insecure_channel("localhost:50051"), interceptor)
+
+# Attempt 1: Raises grpc.RpcError wrapping StatusCode.UNAVAILABLE
+# Attempt 2: Recovers smoothly with gRPC Status OK
+```
+
+Supported canonical gRPC status codes:
+`OK` (0), `CANCELLED` (1), `UNKNOWN` (2), `INVALID_ARGUMENT` (3), `DEADLINE_EXCEEDED` (4), `NOT_FOUND` (5), `ALREADY_EXISTS` (6), `PERMISSION_DENIED` (7), `RESOURCE_EXHAUSTED` (8), `FAILED_PRECONDITION` (9), `ABORTED` (10), `OUT_OF_RANGE` (11), `UNIMPLEMENTED` (12), `INTERNAL` (13), `UNAVAILABLE` (14), `DATA_LOSS` (15), `UNAUTHENTICATED` (16).
+
 ---
 
 ## 📐 Design Principles
@@ -462,7 +500,7 @@ retrylab bench --lang all --format json --json-out benchmarks/results.json
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
 | **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhooks, SSE stream disruption, TCP socket cutoffs, Go SDK, TypeScript SDK, Polyglot Matrix (`v0.2.0-alpha.1`) | **✅ COMPLETED (100%)** |
-| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks | ⚡ **In Progress (Days 15 – 19 Complete)** |
+| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks, gRPC alpha | ⚡ **In Progress (Days 15 – 20 Complete)** |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
 
 ---
