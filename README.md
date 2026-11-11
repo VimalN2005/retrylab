@@ -10,7 +10,8 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
-[![Tests](https://img.shields.io/badge/tests-211%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Release: v0.3.0-alpha.1](https://img.shields.io/badge/release-v0.3.0--alpha.1-purple.svg)](https://github.com/VimalN2005/retrylab/releases)
+[![Tests](https://img.shields.io/badge/tests-215%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -23,7 +24,7 @@ Simulate external API failures, test retry behaviour, and verify that your appli
 ---
 
 > [!NOTE]
-> **Phase 3 in Progress (`v0.2.0-alpha.1`):** RetryLab now includes **gRPC & Protobuf Chaos Simulation Alpha** (`retrylab grpc`), **Polyglot SDK Benchmarks** (`retrylab bench`), **Network-Layer Chaos (DNS & SSL/TLS Simulation)**, **Automated GitHub Actions PR Commenter** (`retrylab pr-comment`), **SVG Visual Scorecards**, **Chaos Studio Web Playground** (`retrylab studio`), and **Terminal TUI Dashboards** across **Python, Go, and TypeScript** with 211 automated tests!
+> **Phase 3 Grand Release (`v0.3.0-alpha.1`):** Week 3 is complete! RetryLab now delivers a comprehensive developer experience with **Interactive Terminal TUI Dashboard** (`retrylab dashboard`), **Automated Scorecards** (`retrylab scorecard`), **Chaos Studio Web Playground** (`retrylab studio`), **GitHub Actions PR Commenter** (`retrylab pr-comment`), **DNS & SSL/TLS Network Chaos** (`retrylab network`), **Microsecond Polyglot Benchmarks** (`retrylab bench`), and **gRPC Chaos Simulation** (`retrylab grpc`) across **Python, Go, and TypeScript** with 215 automated tests!
 
 ---
 
@@ -500,8 +501,8 @@ Supported canonical gRPC status codes:
 | :--- | :--- | :--- | :---: |
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
 | **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhooks, SSE stream disruption, TCP socket cutoffs, Go SDK, TypeScript SDK, Polyglot Matrix (`v0.2.0-alpha.1`) | **✅ COMPLETED (100%)** |
-| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks, gRPC alpha | ⚡ **In Progress (Days 15 – 20 Complete)** |
-| **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | Planned |
+| **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks, gRPC alpha (`v0.3.0-alpha.1`) | **✅ COMPLETED (100%)** |
+| **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | ⚡ **Next Up (Days 22 – 30)** |
 
 ---
 
