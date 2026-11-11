@@ -1,0 +1,18 @@
+# RetryLab Source Distribution Manifest
+include README.md
+include LICENSE
+include CHANGELOG.md
+include pyproject.toml
+include retrylab/py.typed
+
+recursive-include retrylab *.py
+recursive-include examples *.py *.yaml
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[cod]
+recursive-exclude * *.pyd
+recursive-exclude * *.so
+recursive-exclude tests *
+recursive-exclude benchmarks *
+recursive-exclude sdk *
+recursive-exclude .github *
