@@ -11,7 +11,9 @@ from pathlib import Path
 from typing import Optional
 import httpx
 import typer
+from rich.box import ASCII, ROUNDED
 from rich.console import Console
+from rich.table import Table
 
 from retrylab import __version__
 from retrylab.benchmark import (
@@ -82,9 +84,80 @@ app = typer.Typer(
 
 
 @app.command()
-def version() -> None:
+def version(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Display full system capabilities and SDK info"),
+) -> None:
     """Display RetryLab version."""
-    typer.echo(f"RetryLab v{__version__}")
+    if verbose:
+        system_info(format="table")
+    else:
+        typer.echo(f"RetryLab v{__version__}")
+
+
+@app.command(name="system")
+def system_info(
+    format: str = typer.Option("table", "--format", help="Output format: table or json"),
+) -> None:
+    """Display comprehensive RetryLab system capabilities, protocol matrix, and SDK status."""
+    info_data = {
+        "product": "RetryLab",
+        "version": f"v{__version__}",
+        "phase": "Phase 3 (Developer Experience, Polyglot SDKs & Chaos Studio)",
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "protocols": [
+            "HTTP/1.1 (Sync & Async HTTPX, Requests)",
+            "HTTP/2 & gRPC (Canonical Status Codes, Protobuf, Unary Interceptors)",
+            "Streaming / SSE (Chunk drop, truncation, corruption, stalls)",
+            "Inbound Webhooks (Stripe, GitHub, HMAC-SHA256, Forwarding, Replay)",
+            "Network & Socket (DNS resolution, SSL/TLS handshake, TCP resets)",
+        ],
+        "sdks": {
+            "python": "Core in-process transport (Python 3.10+)",
+            "go": "github.com/VimalN2005/retrylab/sdk/go (Go 1.22+)",
+            "typescript": "@retrylab/retrylab (Node.js 20+, Bun, Deno)",
+        },
+        "auditors": [
+            "Cryptographic Idempotency Auditor (SHA-256 body mutation detector)",
+            "Exponential Backoff & Jitter Timing Verifier",
+            "Circuit Breaker Transition Auditor",
+            "Schema Drift Detector",
+        ],
+        "cli_commands": [
+            "dashboard", "scorecard", "studio", "pr-comment",
+            "bench", "grpc", "network", "stream", "socket", "webhook", "proxy",
+        ],
+    }
+
+    if format.lower() == "json":
+        typer.echo(json.dumps(info_data, indent=2))
+        return
+
+    console = Console()
+    encoding = (getattr(sys.stdout, "encoding", "") or "").lower()
+    is_utf8 = "utf" in encoding
+    current_box = ROUNDED if is_utf8 else ASCII
+
+    table = Table(
+        title=f"RetryLab v{__version__} — System & Capabilities Matrix",
+        box=current_box,
+        expand=True,
+        border_style="cyan",
+    )
+    table.add_column("Category", style="bold cyan", width=22)
+    table.add_column("Details & Capabilities", style="white")
+
+    bullet = "• " if is_utf8 else "* "
+    table.add_row("Version & Release", f"[bold green]v{__version__}[/] (Phase 3 Grand Release)")
+    table.add_row("Runtime Python", f"Python {info_data['python_version']} ({sys.platform})")
+    table.add_row("Polyglot SDKs", "Python (Core) | Go 1.22+ (`sdk/go`) | TypeScript/Node.js (`sdk/ts`)")
+    table.add_row("Protocols", "\n".join([f"{bullet}{p}" for p in info_data["protocols"]]))
+    table.add_row("Auditing Engines", "\n".join([f"{bullet}{a}" for a in info_data["auditors"]]))
+    table.add_row("CLI Toolset", ", ".join(info_data["cli_commands"]))
+
+    console.print()
+    console.print(table)
+    console.print()
+    typer.secho("[PASS] Ready for resilient local-first testing and CI validation.", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command()
