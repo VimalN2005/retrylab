@@ -11,7 +11,7 @@
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
 [![Release: v0.3.0-alpha.1](https://img.shields.io/badge/release-v0.3.0--alpha.1-purple.svg)](https://github.com/VimalN2005/retrylab/releases)
-[![Tests](https://img.shields.io/badge/tests-215%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-225%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -483,6 +483,25 @@ channel = grpc.intercept_channel(grpc.insecure_channel("localhost:50051"), inter
 Supported canonical gRPC status codes:
 `OK` (0), `CANCELLED` (1), `UNKNOWN` (2), `INVALID_ARGUMENT` (3), `DEADLINE_EXCEEDED` (4), `NOT_FOUND` (5), `ALREADY_EXISTS` (6), `PERMISSION_DENIED` (7), `RESOURCE_EXHAUSTED` (8), `FAILED_PRECONDITION` (9), `ABORTED` (10), `OUT_OF_RANGE` (11), `UNIMPLEMENTED` (12), `INTERNAL` (13), `UNAVAILABLE` (14), `DATA_LOSS` (15), `UNAUTHENTICATED` (16).
 
+### 16. Installation Health & Diagnostic Doctor (`retrylab doctor`)
+
+Audit runtime compatibility, PEP 561 type definitions, embedded web assets, and polyglot SDK compilers with automated diagnostic verification:
+
+```bash
+# Pretty-printed Rich diagnostic report table
+retrylab doctor
+
+# Machine-parseable JSON for CI pipeline health gates
+retrylab doctor --format json
+```
+
+Key diagnostic checks:
+- **Python Runtime:** Confirms Python $\ge 3.10$ and 64-bit AMD64/ARM64 architecture.
+- **Subpackage Integrity:** Verifies zero-warning imports across all 12 core submodules.
+- **Packaging & PEP 561:** Validates `retrylab/py.typed` marker for IDE auto-complete/type-checking, `MANIFEST.in`, and embedded Chaos Studio assets.
+- **Polyglot Toolchains:** Detects Go compiler (`go version`) and Node.js runtime (`node -v`) for multi-language SDK development.
+- **Terminal Capabilities:** Confirms UTF-8 console output and box rendering support.
+
 ---
 
 ## 📐 Design Principles
@@ -502,7 +521,9 @@ Supported canonical gRPC status codes:
 | **Phase 1: Foundation & Core Matrix** | Nov 1 – Nov 7 | Sync/Async HTTPX Transports, Requests Adapter, Dynamic Latency, Cryptographic Idempotency, YAML Scenarios, Pytest Plugin, Security Redactor, Schema Drift, HTTP Proxy, Reports, Fixture Replay, CI Gate | **✅ COMPLETED (100%)** |
 | **Phase 2: Advanced Chaos & Webhooks** | Nov 8 – Nov 14 | Webhooks, SSE stream disruption, TCP socket cutoffs, Go SDK, TypeScript SDK, Polyglot Matrix (`v0.2.0-alpha.1`) | **✅ COMPLETED (100%)** |
 | **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks, gRPC alpha (`v0.3.0-alpha.1`) | **✅ COMPLETED (100%)** |
-| **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production PyPI release, live developer playground, interactive demo video | ⚡ **Next Up (Days 22 – 30)** |
+| **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production packaging, PEP 561 compliance, soak testing, Docker sidecar, production v1.0 | ⚡ **IN PROGRESS** |
+| &nbsp;&nbsp;↳ **Day 22** | Nov 22 | Packaging Hardening, PEP 561 `py.typed`, Source Manifest & `retrylab doctor` | **✅ COMPLETED (100%)** |
+| &nbsp;&nbsp;↳ **Day 23** | Nov 23 | End-to-End Stress & Soak Testing Suite under sustained 429/503 storm | ⚡ **Next Up** |
 
 ---
 
