@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "retrylab"
-version = "0.2.0-alpha.1"
+version = "0.3.0-alpha.1"
 description = "Deterministic third-party API failure simulation & reliability testing engine for Python"
 readme = "README.md"
 requires-python = ">=3.10"

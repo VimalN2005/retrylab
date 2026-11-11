@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0-alpha.1] - 2026-11-21
+
+### 🚀 Week 3 Grand Release: Developer Experience, Visual Chaos Studio, PR Commenter, Benchmarks & gRPC
+
+This major milestone completes Phase 3 of the 30-day November sprint, introducing an interactive terminal TUI dashboard, an in-browser zero-dependency visual Chaos Studio, dark-mode SVG scorecard badges, automated GitHub Actions PR reviewing, low-level DNS/TLS failure simulation, a unified polyglot benchmark suite, and gRPC status code chaos injection.
+
+### Added
+- **Interactive Terminal TUI Dashboard & Reliability Scorecard (Day 15):**
+  - `retrylab dashboard`: Full-terminal multi-panel layout rendering real-time service waterfalls, failure counters, and latency percentiles with fallback ASCII support on Windows legacy consoles.
+  - `retrylab scorecard`: Automated letter-grade evaluation ($A^+$ to $F$, 0–100 score) across 5 weighted reliability dimensions: Fault Recovery (30%), Cryptographic Idempotency (25%), Exponential Backoff (20%), Circuit Breaking (15%), and Latency Overhead (10%). Supports `--format table|json|markdown`.
+  - `retrylab play <scenario.yaml>`: Step-through interactive scenario execution with live terminal countdowns.
+- **Chaos Studio Web Playground (Day 16):**
+  - `retrylab studio`: Zero-dependency, local-first browser SPA running on `http://127.0.0.1:8400` powered by Python's built-in `http.server`.
+  - Interactive scenario builder with real-time URL matching, HTTP status dropouts, and socket termination toggles.
+  - Curated industry presets for Stripe payment timeouts, OpenAI 429 rate limits, and Twilio 503 carrier overloads.
+  - In-flight request waterfall timeline showing attempt counts, durations, status codes, and SHA-256 idempotency verification.
+  - Instant polyglot code exporter for Python (HTTPX), Go (`http.RoundTripper`), TypeScript (Fetch/Axios), and YAML.
+- **Automated GitHub Actions PR Commenter & Dark-Mode SVG Visual Cards (Day 17):**
+  - `generate_scorecard_svg`: High-resolution dark-mode vector scorecard badge with letter grade pills, glowing neon accents, and dimension meters.
+  - `retrylab pr-comment`: Automated CI PR reviewer outputting formatted Markdown reports with embedded SVG scorecard graphics.
+  - `--fail-under <score>` flag for enforcing quality gates and failing CI runs when reliability drops below thresholds.
+  - Official reusable GitHub Actions workflow: `.github/workflows/pr-commenter.yml`.
+- **Network-Layer Chaos Engine: DNS & SSL/TLS Certificate Faults (Day 18):**
+  - Lower-level network failure simulation: `dns_failure` (`socket.gaierror`), `dns_timeout` (`socket.timeout`), `tls_handshake_timeout`, `ssl_cert_verification_failed` (`ssl.SSLCertVerificationError`), and `ssl_hostname_mismatch` (`ssl.CertificateError`).
+  - Native exception chaining preserving cause objects for realistic client error handling.
+  - CLI: `retrylab network simulate --fault <fault> --url <url>`.
+- **Polyglot SDK Benchmark Suite & Latency Analysis (Day 19):**
+  - `retrylab bench --lang all --iterations 1000`: Cross-SDK latency and throughput benchmark runner with percentiles ($P_{50}$, $P_{90}$, $P_{95}$, $P_{99}$), memory tracing, and machine-readable JSON export.
+  - Verified sub-millisecond overhead: **540 nanoseconds in Go**, **3.5 microseconds in TypeScript**, and **42.3 microseconds in Python**.
+  - Documented architectural comparison against Toxiproxy (Shopify) and WireMock demonstrating 100x to 3,500x lower latency.
+- **gRPC & Protobuf Chaos Simulation Alpha (Day 20):**
+  - Canonical gRPC status code injection (0–16): `UNAVAILABLE`, `DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `INTERNAL`, `FAILED_PRECONDITION`, etc.
+  - `RetryLabUnaryClientInterceptor`: Unary-unary client interceptor for standard `grpc.Channel` (`grpc.intercept_channel`).
+  - Contextual diagnostic recommendations for gRPC retry policies and per-call deadline tuning.
+  - CLI: `retrylab grpc simulate --method <method> --status <status>`.
+  - Polyglot gRPC code snippet generators in `PolyglotChaosMatrix` for Python, Go, and TypeScript.
+
+### Verified
+- **196 passing Python unit & integration tests** in 4.19s.
+- **8 passing TypeScript unit tests** in 270ms.
+- **7 passing Go unit tests** in 3.3s.
+- **Total: 211 verified tests** across all 3 programming languages.
+
+---
+
 ## [0.2.0-alpha.1] - 2026-11-14
 
 ### 🚀 Week 2 Grand Release: Advanced Chaos, Inbound Webhooks, Streaming SSE & Cross-Language SDKs
