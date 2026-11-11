@@ -20,6 +20,10 @@ from retrylab.benchmark import (
     render_benchmark_table,
     run_polyglot_benchmark,
 )
+from retrylab.doctor import (
+    RetryLabDoctor,
+    render_doctor_table,
+)
 from retrylab.grpc import (
     GRPCFaultConfig,
     GRPCStatusCode,
@@ -1085,6 +1089,32 @@ def bench_command(
         json_out.parent.mkdir(parents=True, exist_ok=True)
         json_out.write_text(json.dumps(report, indent=2), encoding="utf-8")
         typer.secho(f"Benchmark report written to {json_out}", fg=typer.colors.CYAN)
+
+
+@app.command(name="doctor")
+def doctor_command(
+    format: str = typer.Option("table", "--format", help="Output format: table or json"),
+) -> None:
+    """Run automated diagnostic health check on Python runtime, subpackages, assets, and toolchains."""
+    doctor = RetryLabDoctor()
+    report = doctor.diagnose_all()
+    if format.lower() == "json":
+        typer.echo(json.dumps(report.to_dict(), indent=2))
+        if not report.passed:
+            raise typer.Exit(code=1)
+        return
+
+    console = Console()
+    table = render_doctor_table(report, console=console)
+    console.print()
+    console.print(table)
+    console.print()
+    summary_str = f"Diagnostic Summary: {report.summary.get('PASS', 0)} passed, {report.summary.get('WARN', 0)} warnings, {report.summary.get('FAIL', 0)} failures, {report.summary.get('INFO', 0)} info."
+    if report.passed:
+        typer.secho(f"[PASS] {summary_str} All critical systems healthy!", fg=typer.colors.GREEN, bold=True)
+    else:
+        typer.secho(f"[FAIL] {summary_str} Critical issues detected.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

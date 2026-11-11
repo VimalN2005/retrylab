@@ -18,6 +18,11 @@ from retrylab.benchmark import (
     run_polyglot_benchmark,
 )
 from retrylab.context import simulate_fault
+from retrylab.doctor import (
+    DiagnosticCheck,
+    DoctorReport,
+    RetryLabDoctor,
+)
 from retrylab.drift import (
     DriftType,
     DriftViolation,
@@ -270,6 +275,10 @@ __all__ = [
     "create_intercepted_channel",
     "get_grpc_recommendation",
     "to_grpc_status",
+    # Diagnostic Doctor
+    "DiagnosticCheck",
+    "DoctorReport",
+    "RetryLabDoctor",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
