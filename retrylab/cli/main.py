@@ -30,6 +30,12 @@ from retrylab.soak import (
     render_soak_table,
     run_soak_test,
 )
+from retrylab.tour import (
+    RetryLabTour,
+    get_all_tour_steps,
+    get_tour_step_by_number,
+    render_completion_summary,
+)
 from retrylab.grpc import (
     GRPCFaultConfig,
     GRPCStatusCode,
@@ -1195,6 +1201,42 @@ def soak_command(
         json_out.parent.mkdir(parents=True, exist_ok=True)
         json_out.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
         typer.secho(f"Soak report written to {json_out}", fg=typer.colors.CYAN)
+
+
+@app.command(name="tour")
+def tour_command(
+    auto: bool = typer.Option(False, "--auto", help="Run guided tour automatically without interactive pauses"),
+    step: Optional[int] = typer.Option(None, "--step", "-s", help="Jump directly to a specific lesson (1 to 5)"),
+    speed: float = typer.Option(1.0, "--speed", help="Speed multiplier for live simulation"),
+    format: str = typer.Option("interactive", "--format", help="Output format: interactive or json"),
+) -> None:
+    """Launch the interactive guided resilience tour across key failure modes."""
+    if step is not None and (step < 1 or step > 5):
+        typer.secho(f"[FAIL] Invalid step '{step}'. Choose a step from 1 to 5.", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    if format.lower() == "json":
+        if step is not None:
+            st = get_tour_step_by_number(step)
+            typer.echo(json.dumps(st.to_dict() if st else {}, indent=2))
+        else:
+            steps = [s.to_dict() for s in get_all_tour_steps()]
+            typer.echo(json.dumps({"version": __version__, "steps": steps}, indent=2))
+        return
+
+    console = Console()
+    tour = RetryLabTour(console=console)
+    results = tour.run_tour(auto_mode=auto, step_number=step, speed=speed)
+
+    summary_table = render_completion_summary(results, console=console)
+    console.print()
+    console.print(summary_table)
+    console.print()
+    typer.secho(
+        f"[PASS] Resilience Tour Completed: {len(results)} lesson(s) verified successfully!",
+        fg=typer.colors.GREEN,
+        bold=True,
+    )
 
 
 if __name__ == "__main__":
