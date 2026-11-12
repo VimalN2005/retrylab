@@ -11,7 +11,7 @@
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
 [![Release: v0.3.0-alpha.1](https://img.shields.io/badge/release-v0.3.0--alpha.1-purple.svg)](https://github.com/VimalN2005/retrylab/releases)
-[![Tests](https://img.shields.io/badge/tests-237%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-249%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -546,6 +546,31 @@ print(f"Storm Factor: {result.storm_amplification_factor:.2f}x ({result.storm_se
 print(f"P99 Latency: {result.p99_latency_ms:.1f}ms")
 ```
 
+### 18. Interactive Guided Resilience Tour (`retrylab tour`)
+
+Launch an interactive, hands-on terminal walkthrough that demonstrates how RetryLab protects applications across 5 essential reliability patterns:
+
+```bash
+# Interactive guided tour with step-by-step pauses
+retrylab tour
+
+# Non-interactive automated execution (ideal for CI and recordings)
+retrylab tour --auto
+
+# Jump directly to a specific tour stop (e.g. Stop 2: Cryptographic Idempotency)
+retrylab tour --step 2
+
+# Export full tour catalog in structured JSON
+retrylab tour --format json
+```
+
+#### Tour Itinerary (5 Interactive Stops)
+1. **Stop 1: HTTP 429 Rate Limiting & Clean Recovery:** Multi-attempt recovery sequences replacing static mocks.
+2. **Stop 2: Cryptographic Idempotency Shield:** SHA-256 request body fingerprinting preventing duplicate billing.
+3. **Stop 3: AI Token & SSE Stream Disruption:** Mid-stream socket cutoffs with seamless `Last-Event-ID` resumption.
+4. **Stop 4: gRPC Microservices Chaos:** In-process canonical gRPC error injection with actionable retry recommendations.
+5. **Stop 5: Retry Storm Amplification & Soak:** Quantifying traffic multiplication factor ($A < 1.30\times$) to prevent thundering herds.
+
 ---
 
 ## 📐 Design Principles
@@ -568,7 +593,8 @@ print(f"P99 Latency: {result.p99_latency_ms:.1f}ms")
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production packaging, PEP 561 compliance, soak testing, Docker sidecar, production v1.0 | ⚡ **IN PROGRESS** |
 | &nbsp;&nbsp;↳ **Day 22** | Nov 22 | Packaging Hardening, PEP 561 `py.typed`, Source Manifest & `retrylab doctor` | **✅ COMPLETED (100%)** |
 | &nbsp;&nbsp;↳ **Day 23** | Nov 23 | End-to-End Stress & Soak Testing Suite under sustained 429/503 storm | **✅ COMPLETED (100%)** |
-| &nbsp;&nbsp;↳ **Day 24** | Nov 24 | Interactive Guided Resilience Tour (`retrylab tour`) & onboarding suite | ⚡ **Next Up** |
+| &nbsp;&nbsp;↳ **Day 24** | Nov 24 | Interactive Guided Resilience Tour (`retrylab tour`) & onboarding suite | **✅ COMPLETED (100%)** |
+| &nbsp;&nbsp;↳ **Day 25** | Nov 25 | Docker Containerized Chaos Sidecar & Zero-Config Deployment | ⚡ **Next Up** |
 
 ---
 
