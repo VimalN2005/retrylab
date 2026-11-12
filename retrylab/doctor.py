@@ -142,6 +142,7 @@ class RetryLabDoctor:
             ("retrylab.socket", "Low-level TCP socket fault simulator"),
             ("retrylab.grpc", "gRPC status code chaos & interceptor"),
             ("retrylab.benchmark", "Polyglot benchmark suite & latency reporter"),
+            ("retrylab.soak", "High-concurrency soak & stress testing engine"),
         ]
 
         for mod_name, desc in submodules:

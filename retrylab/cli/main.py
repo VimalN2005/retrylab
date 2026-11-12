@@ -24,6 +24,12 @@ from retrylab.doctor import (
     RetryLabDoctor,
     render_doctor_table,
 )
+from retrylab.soak import (
+    SoakConfig,
+    SoakFaultMode,
+    render_soak_table,
+    run_soak_test,
+)
 from retrylab.grpc import (
     GRPCFaultConfig,
     GRPCStatusCode,
@@ -1115,6 +1121,80 @@ def doctor_command(
     else:
         typer.secho(f"[FAIL] {summary_str} Critical issues detected.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(code=1)
+
+
+@app.command(name="soak")
+def soak_command(
+    duration: float = typer.Option(3.0, "--duration", "-d", help="Duration of the soak run in seconds"),
+    concurrency: int = typer.Option(10, "--concurrency", "-c", help="Number of concurrent worker threads"),
+    requests: Optional[int] = typer.Option(None, "--requests", "-n", help="Total request limit (optional)"),
+    rate: float = typer.Option(0.35, "--rate", "-r", help="Failure injection probability (0.0 to 1.0)"),
+    retries: int = typer.Option(3, "--retries", help="Max client retries per request"),
+    mode: str = typer.Option("mixed", "--mode", "-m", help="Fault mode: mixed, 429, 503, timeout, reset"),
+    burst: bool = typer.Option(True, "--burst/--no-burst", help="Enable periodic chaos bursts"),
+    max_storm_factor: float = typer.Option(3.0, "--max-storm-factor", help="Maximum allowable retry storm amplification factor"),
+    format: str = typer.Option("table", "--format", help="Output format: table or json"),
+    json_out: Optional[Path] = typer.Option(None, "--json-out", help="Path to export JSON soak report"),
+) -> None:
+    """Run high-concurrency soak & stress test with retry storm amplification analysis."""
+    mode_map = {
+        "mixed": SoakFaultMode.MIXED_STORM,
+        "429": SoakFaultMode.RATE_LIMIT_429,
+        "503": SoakFaultMode.SERVICE_UNAVAILABLE_503,
+        "timeout": SoakFaultMode.TIMEOUT,
+        "reset": SoakFaultMode.CONNECTION_RESET,
+    }
+    mode_key = mode.lower()
+    if mode_key not in mode_map:
+        typer.secho(f"[FAIL] Invalid mode '{mode}'. Choose from: {', '.join(mode_map.keys())}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    cfg = SoakConfig(
+        duration_seconds=duration,
+        concurrency=concurrency,
+        total_requests=requests,
+        failure_rate=rate,
+        max_retries=retries,
+        fault_mode=mode_map[mode_key],
+        burst_enabled=burst,
+    )
+
+    console = Console()
+    with console.status(f"[magenta]Executing {duration}s soak test with {concurrency} workers (fault mode: {mode_key.upper()})...[/]"):
+        result = run_soak_test(cfg)
+
+    if format.lower() == "json":
+        typer.echo(json.dumps(result.to_dict(), indent=2))
+    else:
+        table = render_soak_table(result, console=console)
+        console.print()
+        console.print(table)
+        console.print()
+
+        if result.storm_amplification_factor > max_storm_factor:
+            typer.secho(
+                f"[FAIL] Retry Storm Detected: Amplification factor {result.storm_amplification_factor:.2f}x exceeds threshold {max_storm_factor:.2f}x",
+                fg=typer.colors.RED,
+                bold=True,
+            )
+            raise typer.Exit(code=1)
+        elif result.recovery_rate < 50.0 and result.total_user_requests > result.successful_requests:
+            typer.secho(
+                f"[WARN] Degraded Recovery: Only {result.recovery_rate:.1f}% of failed calls recovered",
+                fg=typer.colors.YELLOW,
+                bold=True,
+            )
+        else:
+            typer.secho(
+                f"[PASS] Resilience Verified: Recovery rate {result.recovery_rate:.1f}%, storm factor {result.storm_amplification_factor:.2f}x within healthy limits",
+                fg=typer.colors.GREEN,
+                bold=True,
+            )
+
+    if json_out:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+        typer.secho(f"Soak report written to {json_out}", fg=typer.colors.CYAN)
 
 
 if __name__ == "__main__":
