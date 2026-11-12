@@ -23,6 +23,15 @@ from retrylab.doctor import (
     DoctorReport,
     RetryLabDoctor,
 )
+from retrylab.soak import (
+    RequestSample,
+    SoakConfig,
+    SoakFaultMode,
+    SoakResult,
+    calculate_storm_severity,
+    render_soak_table,
+    run_soak_test,
+)
 from retrylab.drift import (
     DriftType,
     DriftViolation,
@@ -279,6 +288,14 @@ __all__ = [
     "DiagnosticCheck",
     "DoctorReport",
     "RetryLabDoctor",
+    # Soak & Stress Testing
+    "RequestSample",
+    "SoakConfig",
+    "SoakFaultMode",
+    "SoakResult",
+    "calculate_storm_severity",
+    "render_soak_table",
+    "run_soak_test",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
