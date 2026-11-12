@@ -11,7 +11,7 @@
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
 [![Release: v0.3.0-alpha.1](https://img.shields.io/badge/release-v0.3.0--alpha.1-purple.svg)](https://github.com/VimalN2005/retrylab/releases)
-[![Tests](https://img.shields.io/badge/tests-225%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-237%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -502,6 +502,50 @@ Key diagnostic checks:
 - **Polyglot Toolchains:** Detects Go compiler (`go version`) and Node.js runtime (`node -v`) for multi-language SDK development.
 - **Terminal Capabilities:** Confirms UTF-8 console output and box rendering support.
 
+### 17. End-to-End Stress & Soak Testing (`retrylab soak`)
+
+Simulate high-concurrency sustained traffic, prolonged rate-limiting (429), upstream outages (503), and quantify your application's **Retry Storm Amplification Factor** under load:
+
+```bash
+# Run a 5-second soak test with 10 concurrent workers
+retrylab soak --duration 5.0 --concurrency 10
+
+# Test resilience under prolonged 429 rate-limiting with strict retry storm threshold
+retrylab soak --mode 429 --rate 0.50 --max-storm-factor 2.5
+
+# Export full machine-parseable soak metrics for CI load gates
+retrylab soak --format json --json-out benchmarks/soak_results.json
+```
+
+#### The Retry Storm Amplification Factor ($A$)
+When downstream services degrade, poorly-tuned retry loops cause **thundering herds** that multiply traffic and permanently crash backends:
+
+$$A = \frac{\text{Total Network Attempts}}{\text{Logical User Requests}}$$
+
+- $A < 1.30\times$: **NORMAL** (Healthy exponential backoff with full jitter)
+- $1.30\times - 2.00\times$: **ELEVATED** (Moderate retry pressure)
+- $2.00\times - 3.50\times$: **DANGEROUS** (Aggressive retries straining downstream capacity)
+- $A > 3.50\times$: **CRITICAL** (Catastrophic retry storm / thundering herd)
+
+Programmatic soak testing in Python:
+
+```python
+from retrylab.soak import SoakConfig, SoakFaultMode, run_soak_test
+
+config = SoakConfig(
+    duration_seconds=5.0,
+    concurrency=20,
+    failure_rate=0.40,
+    fault_mode=SoakFaultMode.MIXED_STORM,
+    burst_enabled=True,
+)
+
+result = run_soak_test(config)
+print(f"Recovery Rate: {result.recovery_rate:.1f}%")
+print(f"Storm Factor: {result.storm_amplification_factor:.2f}x ({result.storm_severity})")
+print(f"P99 Latency: {result.p99_latency_ms:.1f}ms")
+```
+
 ---
 
 ## 📐 Design Principles
@@ -523,7 +567,8 @@ Key diagnostic checks:
 | **Phase 3: DX & Multi-Language SDKs** | Nov 15 – Nov 21 | Interactive CLI Scorecard & TUI, Chaos Studio Web Playground, PR Commenter, Fault Matrix expansions (DNS, TLS), SDK benchmarks, gRPC alpha (`v0.3.0-alpha.1`) | **✅ COMPLETED (100%)** |
 | **Phase 4: Launch & Ecosystem** | Nov 22 – Nov 30 | Production packaging, PEP 561 compliance, soak testing, Docker sidecar, production v1.0 | ⚡ **IN PROGRESS** |
 | &nbsp;&nbsp;↳ **Day 22** | Nov 22 | Packaging Hardening, PEP 561 `py.typed`, Source Manifest & `retrylab doctor` | **✅ COMPLETED (100%)** |
-| &nbsp;&nbsp;↳ **Day 23** | Nov 23 | End-to-End Stress & Soak Testing Suite under sustained 429/503 storm | ⚡ **Next Up** |
+| &nbsp;&nbsp;↳ **Day 23** | Nov 23 | End-to-End Stress & Soak Testing Suite under sustained 429/503 storm | **✅ COMPLETED (100%)** |
+| &nbsp;&nbsp;↳ **Day 24** | Nov 24 | Interactive Guided Resilience Tour (`retrylab tour`) & onboarding suite | ⚡ **Next Up** |
 
 ---
 
