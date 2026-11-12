@@ -32,6 +32,14 @@ from retrylab.soak import (
     render_soak_table,
     run_soak_test,
 )
+from retrylab.tour import (
+    RetryLabTour,
+    TourLessonResult,
+    TourStep,
+    get_all_tour_steps,
+    get_tour_step_by_number,
+    render_completion_summary,
+)
 from retrylab.drift import (
     DriftType,
     DriftViolation,
@@ -296,6 +304,13 @@ __all__ = [
     "calculate_storm_severity",
     "render_soak_table",
     "run_soak_test",
+    # Guided Tour
+    "TourStep",
+    "TourLessonResult",
+    "RetryLabTour",
+    "get_all_tour_steps",
+    "get_tour_step_by_number",
+    "render_completion_summary",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",

@@ -143,6 +143,7 @@ class RetryLabDoctor:
             ("retrylab.grpc", "gRPC status code chaos & interceptor"),
             ("retrylab.benchmark", "Polyglot benchmark suite & latency reporter"),
             ("retrylab.soak", "High-concurrency soak & stress testing engine"),
+            ("retrylab.tour", "Interactive guided resilience tour & onboarding engine"),
         ]
 
         for mod_name, desc in submodules:
