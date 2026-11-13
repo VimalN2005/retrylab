@@ -144,6 +144,7 @@ class RetryLabDoctor:
             ("retrylab.benchmark", "Polyglot benchmark suite & latency reporter"),
             ("retrylab.soak", "High-concurrency soak & stress testing engine"),
             ("retrylab.tour", "Interactive guided resilience tour & onboarding engine"),
+            ("retrylab.sidecar", "Zero-code containerized chaos sidecar proxy"),
         ]
 
         for mod_name, desc in submodules:

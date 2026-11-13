@@ -40,6 +40,13 @@ from retrylab.tour import (
     get_tour_step_by_number,
     render_completion_summary,
 )
+from retrylab.sidecar import (
+    RetryLabSidecar,
+    SidecarConfig,
+    SidecarMetrics,
+    SidecarProxyHandler,
+    start_background_sidecar,
+)
 from retrylab.drift import (
     DriftType,
     DriftViolation,
@@ -311,6 +318,12 @@ __all__ = [
     "get_all_tour_steps",
     "get_tour_step_by_number",
     "render_completion_summary",
+    # Chaos Sidecar
+    "RetryLabSidecar",
+    "SidecarConfig",
+    "SidecarMetrics",
+    "SidecarProxyHandler",
+    "start_background_sidecar",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
