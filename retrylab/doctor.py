@@ -145,6 +145,7 @@ class RetryLabDoctor:
             ("retrylab.soak", "High-concurrency soak & stress testing engine"),
             ("retrylab.tour", "Interactive guided resilience tour & onboarding engine"),
             ("retrylab.sidecar", "Zero-code containerized chaos sidecar proxy"),
+            ("retrylab.tracing", "Distributed tracing & OpenTelemetry header auditor"),
         ]
 
         for mod_name, desc in submodules:

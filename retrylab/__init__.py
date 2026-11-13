@@ -47,6 +47,15 @@ from retrylab.sidecar import (
     SidecarProxyHandler,
     start_background_sidecar,
 )
+from retrylab.tracing import (
+    TraceAuditReport,
+    TraceAuditor,
+    TraceChaosMode,
+    TraceContext,
+    TraceFormat,
+    TraceViolation,
+    render_trace_table,
+)
 from retrylab.drift import (
     DriftType,
     DriftViolation,
@@ -324,6 +333,14 @@ __all__ = [
     "SidecarMetrics",
     "SidecarProxyHandler",
     "start_background_sidecar",
+    # Distributed Tracing
+    "TraceAuditReport",
+    "TraceAuditor",
+    "TraceChaosMode",
+    "TraceContext",
+    "TraceFormat",
+    "TraceViolation",
+    "render_trace_table",
     # Transports & Adapters
     "RetryLabTransport",
     "AsyncRetryLabTransport",
