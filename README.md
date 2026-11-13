@@ -11,7 +11,7 @@
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
 [![Release: v0.3.0-alpha.1](https://img.shields.io/badge/release-v0.3.0--alpha.1-purple.svg)](https://github.com/VimalN2005/retrylab/releases)
-[![Tests](https://img.shields.io/badge/tests-261%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-279%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -609,6 +609,29 @@ services:
       - STRIPE_API_BASE=http://retrylab-sidecar:8080
 ```
 
+### 20. Distributed Trace Header Propagation & OpenTelemetry Chaos (`retrylab trace`)
+
+Audit and stress-test distributed tracing context across retried microservice calls. Supports **W3C TraceContext** (`traceparent`, `tracestate`), **Zipkin B3**, **AWS X-Ray**, and **Datadog**:
+
+```bash
+# Generate compliant W3C TraceContext headers
+retrylab trace generate --format w3c
+
+# Simulate a 3-hop retry sequence and verify root trace ID preservation and child span nesting
+retrylab trace simulate --hops 3
+
+# Inject trace corruption chaos to verify OpenTelemetry SDK error resilience
+retrylab trace simulate --corrupt
+
+# Export full trace audit report in machine-parseable JSON for CI pipeline gates
+retrylab trace simulate --hops 3 --output json
+```
+
+Key Tracing Guarantees:
+- **Trace Continuity:** Asserts root `trace_id` is never mutated or lost across retried requests.
+- **Span Nesting:** Verifies every retry attempt generates a unique child `span_id` rather than duplicating spans.
+- **Chaos Fuzzing:** Simulates corrupted hex bytes and dropped headers to prevent tracing crashes in production.
+
 ---
 
 ## 📐 Design Principles
@@ -633,7 +656,8 @@ services:
 | &nbsp;&nbsp;↳ **Day 23** | Nov 23 | End-to-End Stress & Soak Testing Suite under sustained 429/503 storm | **✅ COMPLETED (100%)** |
 | &nbsp;&nbsp;↳ **Day 24** | Nov 24 | Interactive Guided Resilience Tour (`retrylab tour`) & onboarding suite | **✅ COMPLETED (100%)** |
 | &nbsp;&nbsp;↳ **Day 25** | Nov 25 | Docker Containerized Chaos Sidecar & Zero-Config Deployment | **✅ COMPLETED (100%)** |
-| &nbsp;&nbsp;↳ **Day 26** | Nov 26 | Distributed Trace Header Propagation (W3C TraceContext & OpenTelemetry) | ⚡ **Next Up** |
+| &nbsp;&nbsp;↳ **Day 26** | Nov 26 | Distributed Trace Header Propagation (W3C TraceContext & OpenTelemetry) | **✅ COMPLETED (100%)** |
+| &nbsp;&nbsp;↳ **Day 27** | Nov 27 | Multi-Region Latency & Geo-Jitter Chaos Modeling | ⚡ **Next Up** |
 
 ---
 
