@@ -36,6 +36,11 @@ from retrylab.tour import (
     get_tour_step_by_number,
     render_completion_summary,
 )
+from retrylab.sidecar import (
+    RetryLabSidecar,
+    SidecarConfig,
+    start_background_sidecar,
+)
 from retrylab.grpc import (
     GRPCFaultConfig,
     GRPCStatusCode,
@@ -1237,6 +1242,98 @@ def tour_command(
         fg=typer.colors.GREEN,
         bold=True,
     )
+
+
+@app.command(name="sidecar")
+def sidecar_command(
+    port: int = typer.Option(8080, "--port", "-p", help="Port to bind the chaos sidecar proxy"),
+    host: str = typer.Option("0.0.0.0", "--host", "-h", help="Host address to bind (0.0.0.0 for Docker containers)"),
+    scenario: Optional[Path] = typer.Option(None, "--scenario", "-s", help="Path to scenario YAML configuration file"),
+    target: Optional[str] = typer.Option(None, "--target", "-t", help="Upstream base URL for reverse-proxy mode (e.g. https://api.stripe.com)"),
+    daemon: bool = typer.Option(False, "--daemon", help="Run sidecar in background thread and exit immediately"),
+    format: str = typer.Option("table", "--format", help="Output format: table or json"),
+) -> None:
+    """Launch zero-code containerized chaos sidecar proxy for microservices & Kubernetes pods."""
+    if port < 0 or port > 65535:
+        typer.secho(f"[FAIL] Invalid port '{port}'. Must be between 0 and 65535.", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    loaded_scenario = None
+    if scenario:
+        if not scenario.exists():
+            typer.secho(f"[FAIL] Scenario file not found: {scenario}", fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+        try:
+            loaded_scenario = load_scenario_from_yaml(scenario)
+        except Exception as exc:
+            typer.secho(f"[FAIL] Failed to load scenario YAML: {exc}", fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+
+    cfg = SidecarConfig(
+        host=host,
+        port=port,
+        target_upstream=target,
+        scenario=loaded_scenario,
+        scenario_path=str(scenario) if scenario else None,
+    )
+
+    console = Console()
+    encoding = (getattr(sys.stdout, "encoding", "") or "").lower()
+    is_utf8 = "utf" in encoding
+    current_box = ROUNDED if is_utf8 else ASCII
+
+    if format.lower() == "json":
+        meta = {
+            "status": "RUNNING" if daemon else "INITIALIZED",
+            "version": __version__,
+            "host": host,
+            "port": port,
+            "target": target,
+            "scenario": loaded_scenario.name if loaded_scenario else None,
+            "endpoints": {
+                "health": f"http://{host}:{port}/_retrylab/health",
+                "metrics": f"http://{host}:{port}/_retrylab/metrics",
+                "scenario": f"http://{host}:{port}/_retrylab/scenario",
+            },
+        }
+        typer.echo(json.dumps(meta, indent=2))
+        if daemon:
+            start_background_sidecar(cfg)
+        return
+
+    table = Table(
+        title=f"🛡️ RetryLab Chaos Sidecar Proxy (v{__version__})",
+        box=current_box,
+        border_style="cyan",
+        expand=True,
+    )
+    table.add_column("Configuration / Endpoint", style="bold cyan", width=28)
+    table.add_column("Value", style="bold white")
+
+    table.add_row("Listening Address", f"http://{host}:{port}")
+    mode_desc = f"Reverse Proxy (Forwarding to: {target})" if target else "Forward Proxy (Intercepts outbound HTTP/HTTPS)"
+    table.add_row("Proxy Mode", mode_desc)
+    table.add_row("Active Scenario", loaded_scenario.name if loaded_scenario else "None (Dynamic / Pass-through)")
+    table.add_row("Health Probe", f"http://{host}:{port}/_retrylab/health")
+    table.add_row("Metrics Endpoint", f"http://{host}:{port}/_retrylab/metrics")
+    table.add_row("Reset Endpoint", f"http://{host}:{port}/_retrylab/reset (POST)")
+
+    console.print()
+    console.print(table)
+    console.print()
+
+    sidecar = RetryLabSidecar(cfg)
+    if daemon:
+        sidecar.start_background()
+        typer.secho(f"[PASS] Sidecar running in background on http://{host}:{port}", fg=typer.colors.GREEN, bold=True)
+        return
+
+    typer.secho(f"[PASS] Sidecar listening on http://{host}:{port}. Press Ctrl+C to terminate.", fg=typer.colors.GREEN, bold=True)
+    try:
+        sidecar.start()
+    except KeyboardInterrupt:
+        sidecar.stop()
+        typer.secho("\nSidecar proxy terminated.", fg=typer.colors.YELLOW)
 
 
 if __name__ == "__main__":

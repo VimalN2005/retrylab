@@ -1,0 +1,18 @@
+# RetryLab Chaos Sidecar Demo Scenario
+# Simulates Stripe Checkout / Payment Gateway temporary outage and recovery
+name: stripe_checkout_sidecar_demo
+target: "*/v1/charges*"
+fault: service_unavailable_503
+fail_count: 1
+delay_seconds: 0.05
+retry_after_seconds: 2
+custom_headers:
+  Content-Type: application/json
+  X-Simulated-By: RetryLab-Sidecar
+custom_body: >
+  {
+    "error": {
+      "type": "api_connection_error",
+      "message": "Stripe downstream processing cluster overloaded. Please retry."
+    }
+  }

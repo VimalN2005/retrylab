@@ -1,0 +1,44 @@
+services:
+  # RetryLab Chaos Sidecar Proxy
+  retrylab-sidecar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: retrylab/sidecar:latest
+    container_name: retrylab-sidecar
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./examples:/scenarios:ro
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "--scenario"
+      - "/scenarios/sidecar_demo.yaml"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/_retrylab/health')\""]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Example Application Service using the Sidecar
+  # In a microservices architecture, route outbound HTTP calls through the sidecar
+  demo-app:
+    image: alpine/curl:latest
+    container_name: retrylab-demo-client
+    depends_on:
+      retrylab-sidecar:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '--- Querying Sidecar Health Probe ---';
+        curl -s http://retrylab-sidecar:8080/_retrylab/health;
+        echo '\n--- Attempt #1: Injected 503 Fault ---';
+        curl -s -w '\nHTTP Status: %{http_code}\n' -X POST http://retrylab-sidecar:8080/v1/charges;
+        echo '--- Attempt #2: Recovered 200 OK ---';
+        curl -s -w '\nHTTP Status: %{http_code}\n' -X POST http://retrylab-sidecar:8080/v1/charges;
+      "
+    restart: "no"

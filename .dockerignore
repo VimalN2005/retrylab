@@ -1,0 +1,29 @@
+# Git and version control
+.git
+.gitignore
+.github
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Polyglot SDK binaries and node_modules
+sdk/go/retrylab/*.test
+sdk/go/retrylab/*.exe
+sdk/ts/node_modules/
+sdk/ts/dist/
+
+# Benchmark artifacts and temp files
+benchmarks/*.json
+.env
+.venv
+venv/
+*.log
