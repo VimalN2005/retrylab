@@ -41,6 +41,12 @@ from retrylab.sidecar import (
     SidecarConfig,
     start_background_sidecar,
 )
+from retrylab.tracing import (
+    TraceAuditor,
+    TraceContext,
+    TraceFormat,
+    render_trace_table,
+)
 from retrylab.grpc import (
     GRPCFaultConfig,
     GRPCStatusCode,
@@ -1334,6 +1340,114 @@ def sidecar_command(
     except KeyboardInterrupt:
         sidecar.stop()
         typer.secho("\nSidecar proxy terminated.", fg=typer.colors.YELLOW)
+
+
+@app.command(name="trace")
+def trace_command(
+    action: str = typer.Argument("simulate", help="Trace action: generate, simulate, audit"),
+    format: str = typer.Option("w3c", "--format", "-f", help="Trace format: w3c, b3, b3_multi, xray, datadog"),
+    corrupt: bool = typer.Option(False, "--corrupt", help="Inject malformed trace ID characters for chaos testing"),
+    hops: int = typer.Option(3, "--hops", help="Number of retry hops to simulate"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table or json"),
+) -> None:
+    """Audit and simulate distributed trace propagation (W3C TraceContext, B3, AWS X-Ray, Datadog)."""
+    fmt_map = {
+        "w3c": TraceFormat.W3C_TRACECONTEXT,
+        "b3": TraceFormat.B3_SINGLE,
+        "b3_multi": TraceFormat.B3_MULTI,
+        "xray": TraceFormat.AWS_XRAY,
+        "datadog": TraceFormat.DATADOG,
+    }
+    fmt_key = format.lower()
+    if fmt_key not in fmt_map:
+        typer.secho(f"[FAIL] Invalid format '{format}'. Choose from: {', '.join(fmt_map.keys())}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    trace_fmt = fmt_map[fmt_key]
+    console = Console()
+    encoding = (getattr(sys.stdout, "encoding", "") or "").lower()
+    is_utf8 = "utf" in encoding
+    current_box = ROUNDED if is_utf8 else ASCII
+
+    act = action.lower()
+    if act == "generate":
+        ctx = TraceContext.generate(format=trace_fmt, sampled=True)
+        if corrupt:
+            ctx = ctx.corrupt_trace_id()
+
+        if output.lower() == "json":
+            typer.echo(json.dumps(ctx.to_dict(), indent=2))
+            return
+
+        table = Table(
+            title=f"🏷️ Generated Distributed Trace Context ({trace_fmt.value.upper()})",
+            box=current_box,
+            border_style="cyan",
+            expand=True,
+        )
+        table.add_column("Property", style="bold cyan", width=22)
+        table.add_column("Value", style="bold white")
+
+        table.add_row("Format Standard", trace_fmt.value.upper())
+        table.add_row("Root Trace ID", ctx.trace_id)
+        table.add_row("Span ID", ctx.span_id)
+        table.add_row("Sampled Flag", str(ctx.sampled))
+
+        for hk, hv in ctx.to_headers().items():
+            table.add_row(f"Header: {hk}", hv)
+
+        console.print()
+        console.print(table)
+        console.print()
+        if corrupt:
+            typer.secho("[CHAOS INJECTED] Trace ID corrupted with non-hex characters for resilience fuzzing.", fg=typer.colors.YELLOW)
+        else:
+            typer.secho("[PASS] Valid distributed trace context generated.", fg=typer.colors.GREEN)
+        return
+
+    if act in ("simulate", "audit"):
+        parent = TraceContext.generate(format=trace_fmt, sampled=True)
+        attempts_headers: List[Dict[str, str]] = []
+
+        for h in range(1, hops + 1):
+            if corrupt and h == 2:
+                # Corrupt on attempt 2
+                child = parent.create_child_span().corrupt_trace_id()
+            else:
+                child = parent.create_child_span()
+            attempts_headers.append(child.to_headers())
+
+        auditor = TraceAuditor(expected_format=trace_fmt)
+        report = auditor.audit_trace_sequence(attempts_headers)
+
+        if output.lower() == "json":
+            typer.echo(json.dumps(report.to_dict(), indent=2))
+            if not report.passed:
+                raise typer.Exit(code=1)
+            return
+
+        table = render_trace_table(report, console=console)
+        console.print()
+        console.print(table)
+        console.print()
+
+        if report.passed:
+            typer.secho(
+                f"[PASS] Distributed Trace Integrity Verified: {report.spans_detected} spans tracked under root '{report.root_trace_id}'",
+                fg=typer.colors.GREEN,
+                bold=True,
+            )
+        else:
+            typer.secho(
+                f"[FAIL] Trace Propagation Broken: {len(report.violations)} violation(s) detected during retry sequence.",
+                fg=typer.colors.RED,
+                bold=True,
+            )
+            raise typer.Exit(code=1)
+        return
+
+    typer.secho(f"[FAIL] Unknown action '{action}'. Choose: generate, simulate, audit.", fg=typer.colors.RED)
+    raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
