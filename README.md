@@ -11,7 +11,7 @@
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
 [![Release: v0.3.0-alpha.1](https://img.shields.io/badge/release-v0.3.0--alpha.1-purple.svg)](https://github.com/VimalN2005/retrylab/releases)
-[![Tests](https://img.shields.io/badge/tests-249%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-261%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -571,6 +571,44 @@ retrylab tour --format json
 4. **Stop 4: gRPC Microservices Chaos:** In-process canonical gRPC error injection with actionable retry recommendations.
 5. **Stop 5: Retry Storm Amplification & Soak:** Quantifying traffic multiplication factor ($A < 1.30\times$) to prevent thundering herds.
 
+### 19. Docker Chaos Sidecar (`retrylab sidecar`) & Zero-Code Polyglot Deployment
+
+Attach RetryLab fault injection, rate limiting, and recovery verification to **any container, Kubernetes pod, or microservice stack** (Python, Go, Node, Java, Rust, Ruby, C#) without changing application code:
+
+```bash
+# Launch containerized chaos sidecar proxy on port 8080
+retrylab sidecar --port 8080 --scenario examples/sidecar_demo.yaml
+
+# Reverse-proxy mode: Intercept and forward to upstream API target
+retrylab sidecar --port 8080 --target https://api.stripe.com --scenario examples/sidecar_demo.yaml
+
+# Query sidecar health probe and metrics
+curl http://localhost:8080/_retrylab/health
+curl http://localhost:8080/_retrylab/metrics
+```
+
+#### Zero-Config Docker Compose Deployment
+
+```yaml
+services:
+  retrylab-sidecar:
+    image: retrylab/sidecar:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./scenarios:/scenarios:ro
+    command: ["--host", "0.0.0.0", "--port", "8080", "--scenario", "/scenarios/sidecar_demo.yaml"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/_retrylab/health')\""]
+
+  # Any polyglot client service routes through the sidecar
+  my-app:
+    image: my-service:latest
+    environment:
+      - HTTP_PROXY=http://retrylab-sidecar:8080
+      - STRIPE_API_BASE=http://retrylab-sidecar:8080
+```
+
 ---
 
 ## 📐 Design Principles
@@ -594,7 +632,8 @@ retrylab tour --format json
 | &nbsp;&nbsp;↳ **Day 22** | Nov 22 | Packaging Hardening, PEP 561 `py.typed`, Source Manifest & `retrylab doctor` | **✅ COMPLETED (100%)** |
 | &nbsp;&nbsp;↳ **Day 23** | Nov 23 | End-to-End Stress & Soak Testing Suite under sustained 429/503 storm | **✅ COMPLETED (100%)** |
 | &nbsp;&nbsp;↳ **Day 24** | Nov 24 | Interactive Guided Resilience Tour (`retrylab tour`) & onboarding suite | **✅ COMPLETED (100%)** |
-| &nbsp;&nbsp;↳ **Day 25** | Nov 25 | Docker Containerized Chaos Sidecar & Zero-Config Deployment | ⚡ **Next Up** |
+| &nbsp;&nbsp;↳ **Day 25** | Nov 25 | Docker Containerized Chaos Sidecar & Zero-Config Deployment | **✅ COMPLETED (100%)** |
+| &nbsp;&nbsp;↳ **Day 26** | Nov 26 | Distributed Trace Header Propagation (W3C TraceContext & OpenTelemetry) | ⚡ **Next Up** |
 
 ---
 
