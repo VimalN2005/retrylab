@@ -11,7 +11,7 @@
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](sdk/go)
 [![TypeScript 5+](https://img.shields.io/badge/typescript-5+-3178C6.svg)](sdk/ts)
 [![Release: v0.3.0-alpha.1](https://img.shields.io/badge/release-v0.3.0--alpha.1-purple.svg)](https://github.com/VimalN2005/retrylab/releases)
-[![Tests](https://img.shields.io/badge/tests-279%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
+[![Tests](https://img.shields.io/badge/tests-307%20passed-brightgreen.svg)](https://github.com/VimalN2005/retrylab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -632,6 +632,40 @@ Key Tracing Guarantees:
 - **Span Nesting:** Verifies every retry attempt generates a unique child `span_id` rather than duplicating spans.
 - **Chaos Fuzzing:** Simulates corrupted hex bytes and dropped headers to prevent tracing crashes in production.
 
+### 21. Multi-Region Latency & Geo-Jitter Chaos Modeling (`retrylab geo`)
+
+Model cross-cloud and cross-continental latency profiles with speed-of-light physical fiber calculations ($c_{\text{fiber}} \approx 200,000\text{ km/s}$), real-world cable detour factors ($1.38\times$), Gaussian network jitter, and undersea fiber disruption chaos:
+
+```bash
+# List supported multi-cloud geographic regions (AWS, GCP, Azure)
+retrylab geo regions
+
+# Filter regions by cloud provider (e.g. GCP only)
+retrylab geo regions --provider GCP
+
+# Render full cross-continental latency matrix across major cloud hubs
+retrylab geo matrix
+
+# Simulate undersea transoceanic fiber cable severance chaos (+95ms reroute detour)
+retrylab geo matrix --disruption undersea_cable_cut
+
+# Execute simulated high-precision probe pings between regions
+retrylab geo ping --from us-east-1 --to ap-southeast-1 --count 10
+
+# Simulate solar storm geomagnetic jitter and packet drop storms
+retrylab geo ping --from us-east-1 --to sa-east-1 --disruption solar_storm
+
+# Export machine-parseable JSON latency telemetry for CI/CD gates
+retrylab geo ping --from us-east-1 --to eu-west-1 --output json
+```
+
+Key Chaos Disruption Models:
+- **Undersea Cable Severance:** Models transoceanic optical fiber breaks (e.g. Red Sea / Transatlantic), adding +85ms to +140ms detour latency and reroute packet drops.
+- **Solar Storm & Cosmic Jitter:** Simulates high-altitude geomagnetic activity with extreme jitter ($\pm 45\text{ms}$) and packet flapping.
+- **BGP Route Hijack:** Models suboptimal transit routing and autonomous system peering detours (+120ms baseline overhead).
+- **GEO Satellite Fallback:** Simulates emergency uplink failover to geostationary orbit satellites (+540ms base RTT).
+- **Packet Loss Storm:** Injects 10%–15% packet drops to audit TCP retry amplification and client failover resiliency.
+
 ---
 
 ## 📐 Design Principles
@@ -657,7 +691,8 @@ Key Tracing Guarantees:
 | &nbsp;&nbsp;↳ **Day 24** | Nov 24 | Interactive Guided Resilience Tour (`retrylab tour`) & onboarding suite | **✅ COMPLETED (100%)** |
 | &nbsp;&nbsp;↳ **Day 25** | Nov 25 | Docker Containerized Chaos Sidecar & Zero-Config Deployment | **✅ COMPLETED (100%)** |
 | &nbsp;&nbsp;↳ **Day 26** | Nov 26 | Distributed Trace Header Propagation (W3C TraceContext & OpenTelemetry) | **✅ COMPLETED (100%)** |
-| &nbsp;&nbsp;↳ **Day 27** | Nov 27 | Multi-Region Latency & Geo-Jitter Chaos Modeling | ⚡ **Next Up** |
+| &nbsp;&nbsp;↳ **Day 27** | Nov 27 | Multi-Region Latency & Geo-Jitter Chaos Modeling | **✅ COMPLETED (100%)** |
+| &nbsp;&nbsp;↳ **Day 28** | Nov 28 | Security Hardening & Zero-Day Resilience Scanner (`retrylab audit`) | ⚡ **Next Up** |
 
 ---
 
