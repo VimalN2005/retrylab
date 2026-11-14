@@ -146,6 +146,7 @@ class RetryLabDoctor:
             ("retrylab.tour", "Interactive guided resilience tour & onboarding engine"),
             ("retrylab.sidecar", "Zero-code containerized chaos sidecar proxy"),
             ("retrylab.tracing", "Distributed tracing & OpenTelemetry header auditor"),
+            ("retrylab.geo", "Multi-region latency & geo-jitter chaos modeler"),
         ]
 
         for mod_name, desc in submodules:
