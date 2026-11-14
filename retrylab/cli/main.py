@@ -47,6 +47,22 @@ from retrylab.tracing import (
     TraceFormat,
     render_trace_table,
 )
+from retrylab.geo import (
+    CloudProvider,
+    CloudRegion,
+    GeoDisruptionType,
+    GeoLatencyMatrix,
+    GeoSimulationResult,
+    calculate_baseline_rtt_ms,
+    generate_latency_matrix,
+    get_region,
+    haversine_distance_km,
+    list_regions,
+    render_geo_matrix_table,
+    render_ping_table,
+    render_region_list_table,
+    simulate_cross_region_latency,
+)
 from retrylab.grpc import (
     GRPCFaultConfig,
     GRPCStatusCode,
@@ -1447,6 +1463,108 @@ def trace_command(
         return
 
     typer.secho(f"[FAIL] Unknown action '{action}'. Choose: generate, simulate, audit.", fg=typer.colors.RED)
+    raise typer.Exit(code=1)
+
+
+@app.command(name="geo")
+def geo_command(
+    action: str = typer.Argument("matrix", help="Action to execute: 'matrix' (cross-region RTT grid), 'ping' (simulate probes), 'regions' (list cloud regions)"),
+    src: Optional[str] = typer.Option(None, "--from", "-s", help="Source cloud region (e.g. us-east-1, eu-west-1)"),
+    dst: Optional[str] = typer.Option(None, "--to", "-d", help="Destination cloud region (e.g. ap-southeast-1, sa-east-1)"),
+    count: int = typer.Option(10, "--count", "-c", help="Number of ping probe samples to simulate (default: 10)"),
+    disruption: str = typer.Option("none", "--disruption", help="Chaos disruption: none, undersea_cable_cut, solar_storm, bgp_route_hijack, transit_congestion, satellite_fallback, packet_loss_storm"),
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter regions by cloud provider (AWS, GCP, AZURE)"),
+    hubs_only: bool = typer.Option(False, "--hubs-only", help="Include only primary cross-cloud hubs in matrix or listing"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: 'table' or 'json'"),
+) -> None:
+    """Simulate multi-region network latency, cross-continental fiber RTT, and undersea cable cut chaos."""
+    console = Console()
+    try:
+        disr_type = GeoDisruptionType(disruption.lower())
+    except ValueError:
+        valid_modes = [d.value for d in GeoDisruptionType]
+        typer.secho(f"[FAIL] Invalid disruption type '{disruption}'. Valid options: {', '.join(valid_modes)}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    act = action.strip().lower()
+
+    if act in ("regions", "list"):
+        prov_enum = None
+        if provider:
+            try:
+                prov_enum = CloudProvider(provider.upper())
+            except ValueError:
+                typer.secho(f"[FAIL] Invalid provider '{provider}'. Choose AWS, GCP, or AZURE.", fg=typer.colors.RED)
+                raise typer.Exit(code=1)
+
+        regs = list_regions(provider=prov_enum, hubs_only=hubs_only)
+        if output.lower() == "json":
+            typer.echo(json.dumps([r.to_dict() for r in regs], indent=2))
+            return
+
+        table = render_region_list_table(regs)
+        console.print()
+        console.print(table)
+        console.print()
+        typer.secho(f"Listed {len(regs)} multi-cloud geographic datacenter regions.", fg=typer.colors.CYAN)
+        return
+
+    if act in ("matrix", "grid"):
+        regs = list_regions(hubs_only=True) if hubs_only else None
+        matrix = generate_latency_matrix(regions=regs, disruption=disr_type)
+        if output.lower() == "json":
+            typer.echo(json.dumps(matrix.to_dict(), indent=2))
+            return
+
+        table = render_geo_matrix_table(matrix)
+        console.print()
+        console.print(table)
+        console.print()
+        if disr_type != GeoDisruptionType.NONE:
+            typer.secho(f"[CHAOS ACTIVE] Injected disruption: {disr_type.display_name}", fg=typer.colors.YELLOW, bold=True)
+        else:
+            typer.secho("[CLEAN FIBER] Physical speed-of-light baseline RTT in silica optical fiber.", fg=typer.colors.GREEN)
+        return
+
+    if act in ("ping", "probe", "simulate"):
+        source_code = src or "us-east-1"
+        target_code = dst or "ap-southeast-1"
+        try:
+            res = simulate_cross_region_latency(
+                src=source_code,
+                dst=target_code,
+                count=count,
+                disruption=disr_type,
+            )
+        except ValueError as err:
+            typer.secho(f"[FAIL] {err}", fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+
+        if output.lower() == "json":
+            typer.echo(json.dumps(res.to_dict(), indent=2))
+            return
+
+        table = render_ping_table(res)
+        console.print()
+        console.print(table)
+        console.print()
+
+        typer.echo(f"--- {res.source.code} ({res.source.city}) -> {res.destination.code} ({res.destination.city}) ping statistics ---")
+        typer.echo(
+            f"{res.samples_sent} packets transmitted, {res.samples_received} received, "
+            f"{res.packet_loss_pct:.1f}% packet loss, baseline RTT: {res.baseline_rtt_ms:.1f} ms"
+        )
+        if res.samples_received > 0:
+            typer.echo(
+                f"rtt min/avg/max/p95/jitter = {res.min_ms:.2f}/{res.avg_ms:.2f}/{res.max_ms:.2f}/{res.p95_ms:.2f}/±{res.jitter_ms:.2f} ms"
+            )
+        if disr_type != GeoDisruptionType.NONE:
+            typer.secho(f"[CHAOS WARNING] Disruption active: {disr_type.display_name}", fg=typer.colors.YELLOW, bold=True)
+        elif res.packet_loss_pct == 0.0:
+            typer.secho("[PASS] Clean transcontinental latency profile within SLA.", fg=typer.colors.GREEN, bold=True)
+        return
+
+    typer.secho(f"[FAIL] Unknown action '{action}'. Choose: matrix, ping, regions.", fg=typer.colors.RED)
     raise typer.Exit(code=1)
 
 

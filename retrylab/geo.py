@@ -684,12 +684,12 @@ def render_region_list_table(regions: List[CloudRegion]) -> Table:
         box=ROUNDED,
         header_style="bold blue",
     )
-    table.add_column("Region Code", style="bold cyan", width=16)
-    table.add_column("Cloud Provider", justify="center", width=12)
-    table.add_column("Name", width=28)
-    table.add_column("Location", width=22)
-    table.add_column("Coordinates", justify="right", width=20)
-    table.add_column("Hub", justify="center", width=6)
+    table.add_column("Region Code", style="bold cyan", no_wrap=True)
+    table.add_column("Cloud Provider", justify="center")
+    table.add_column("Name")
+    table.add_column("Location")
+    table.add_column("Coordinates", justify="right")
+    table.add_column("Hub", justify="center")
 
     for r in regions:
         hub_str = "⭐" if r.is_hub else "—"
